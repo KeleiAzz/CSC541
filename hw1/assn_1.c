@@ -1,49 +1,115 @@
 #include <stdio.h>
-#include <sys/time.h> 
-// FILE *inp; /* Input file stream */ 
-// int k1, k2, k3; /* Keys to read */ 
-// inp = fopen( "key.db", "rb" ); 
-// fread( &k1, sizeof( int ), 1, inp ); 
-// fseek( inp, 2 * sizeof( int ), SEEK_SET ); 
-// fread( &k2, sizeof( int ), 1, inp ); 
-// fseek( inp, -2 * sizeof( int ), SEEK_END ); 
-// fread( &k3, sizeof( int ), 1, inp );
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
 
+int* inMemorySequential(int *key, int *seek, int key_len, int seek_len);
+void inMemoryBinary();
+void onDiskSequential();
+void onDiskBinary();
+int numOfInt(FILE *inp);
+int* readIntoMemory(FILE *inp, int len);
 
-int main(int argc, const char *argv[])
-{   
-    struct timeval tm; 
+int main(int argc, char *argv[])
+{
+    struct timeval start_time, end_time;
+
+    FILE *keyFile, *seekFile;
+
+    // Read the seek.db into memeory
+    seekFile = fopen( argv[3], "rb");
+    int seek_len = numOfInt(seekFile);
+    int *seek = readIntoMemory( seekFile, seek_len );
+    fclose(seekFile);
+
+    gettimeofday( &start_time, NULL );
+    int *result;
+    if( strcmp( argv[1], "--mem-lin") == 0 )
+    {
+        keyFile = fopen( argv[2], "rb" );
+        int key_len = numOfInt(keyFile);
+        int *key = readIntoMemory(keyFile, key_len);
+        fclose(keyFile);
+        result = inMemorySequential(key, seek, key_len, seek_len);
+    }
+    else if (strcmp( argv[1], "--mem-bin") == 0)
+    {
+        keyFile = fopen( argv[2], "rb" );
+        int key_len = numOfInt(keyFile);
+        int *key = readIntoMemory(keyFile, key_len);
+        fclose(keyFile);
+        result = inMemoryBinary(key, seek, key_len, seek_len);
+    }
+    else if (strcmp( argv[1], "--disk-lin") == 0)
+    {
+
+    }
+    else if (strcmp( argv[1], "--disk-bin") == 0)
+    {
+
+    }
+    else
+    {
+        printf("Parameter error\n");
+    }
     
-    FILE *inp; /* Input file stream */
-    int key[5000], seek[10000]; /* Keys to read */
-    inp = fopen( "seek.db", "rb" );
-    fread( &seek, sizeof( int ), 10000, inp );
     
-    gettimeofday( &tm, NULL ); 
-    printf( "Seconds: %ld\n", tm.tv_sec ); 
-    printf( "Microseconds: %d\n", tm.tv_usec );
+    // int *seek = readIntoMemory(seekFile, seek_len);
+    gettimeofday( &end_time, NULL );
+
     
-    inp = fopen( "key.db", "rb" );
-    fread( &key, sizeof( int ), 5000, inp );
-    
-    gettimeofday( &tm, NULL );
-    printf( "Seconds: %ld\n", tm.tv_sec ); 
-    printf( "Microseconds: %d\n", tm.tv_usec );
-    
-    int s[10000];
-    for(int i = 0; i < 10000; i++){
-        for(int j = 0; j < 5000; j++){
-            if(key[j] == seek[i]){
-                s[i]=1;
-            }
+    int k;
+    for(k = 0; k < seek_len; k++){
+        if(result[k]){
+            printf("%12d: Yes\n", seek[k]);
+        }
+        else{
+            printf("%12d: No\n", seek[k]);
         }
     }
-    gettimeofday( &tm, NULL ); 
-    printf( "Seconds: %ld\n", tm.tv_sec ); 
-    printf( "Microseconds: %d\n", tm.tv_usec );
+    // int *num = readIntoMemory("key.db");
+    // for(int i = 0; i < 100; i++){
+    //     printf("%d\n", num[i]);
+    // }
     
-    for(int i = 0; i< 10000; i++){
-        printf("%d\n", s[i]);
-    }
+    // printf( "Seconds: %ld\n", tm.tv_sec );
+    // printf( "Microseconds: %d\n", tm.tv_usec );
+    printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
     return 0;
+};
+
+int* inMemorySequential(int *key, int *seek, int key_len, int seek_len)
+{
+    int *s = (int *)malloc(seek_len*sizeof(int));
+    // int s[seek_len];
+    int i, j;
+    for(i = 0; i < seek_len; i++){
+        for(int j = 0; j < key_len; j++){
+            if(key[j] == seek[i]){
+                s[i] = 1;
+                break;
+            }
+            s[i] = 0;
+        }
+    }
+    return s;
+};
+
+// void inMemoryBinary(char keyFileName[], char seekFileName[])
+// {
+
+// }
+
+int* readIntoMemory(FILE *inp, int len){
+    int *num = (int *)malloc(len*sizeof(int));
+    fread( num, sizeof(int), len, inp);
+    fclose(inp);
+    return num;
+}
+
+int numOfInt(FILE *inp){
+    fseek(inp, 0, SEEK_END);
+    unsigned long len = (unsigned long)ftell(inp);
+    rewind(inp);
+    return len/4;
 };
