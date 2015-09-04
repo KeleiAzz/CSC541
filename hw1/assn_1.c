@@ -4,9 +4,9 @@
 #include <sys/time.h>
 
 int* inMemorySequential(int *key, int *seek, int key_len, int seek_len);
-void inMemoryBinary();
-void onDiskSequential();
-void onDiskBinary();
+int inMemoryBinary(int *key, int seek, int lo, int hi);
+int* onDiskSequential(FILE *keyFile, int *seek, int key_len, int seek_len);
+int onDiskBinary(FILE *keyFile, int seek, int lo, int hi);
 int numOfInt(FILE *inp);
 int* readIntoMemory(FILE *inp, int len);
 
@@ -21,9 +21,12 @@ int main(int argc, char *argv[])
     int seek_len = numOfInt(seekFile);
     int *seek = readIntoMemory( seekFile, seek_len );
     fclose(seekFile);
+    int *result = (int *)malloc(seek_len*sizeof(int));
 
+    // Start recording time
     gettimeofday( &start_time, NULL );
-    int *result;
+    
+    // Use different function 
     if( strcmp( argv[1], "--mem-lin") == 0 )
     {
         keyFile = fopen( argv[2], "rb" );
@@ -38,23 +41,34 @@ int main(int argc, char *argv[])
         int key_len = numOfInt(keyFile);
         int *key = readIntoMemory(keyFile, key_len);
         fclose(keyFile);
-        result = inMemoryBinary(key, seek, key_len, seek_len);
+        for( int i = 0; i < seek_len; i++)
+        {
+            result[i] = inMemoryBinary(key, seek[i], 0, key_len - 1);
+        }
     }
     else if (strcmp( argv[1], "--disk-lin") == 0)
     {
-
+        keyFile = fopen( argv[2], "rb" );
+        int key_len = numOfInt(keyFile);
+        result = onDiskSequential(keyFile, seek, key_len, seek_len);
+        fclose(keyFile);
+        
     }
     else if (strcmp( argv[1], "--disk-bin") == 0)
     {
-
+        keyFile = fopen( argv[2], "rb" );
+        int key_len = numOfInt(keyFile);
+        for( int i = 0; i < seek_len; i++)
+        {
+            result[i] = onDiskBinary(keyFile, seek[i], 0, key_len - 1);
+        }
+        fclose(keyFile);
     }
     else
     {
         printf("Parameter error\n");
     }
     
-    
-    // int *seek = readIntoMemory(seekFile, seek_len);
     gettimeofday( &end_time, NULL );
 
     
@@ -67,13 +81,6 @@ int main(int argc, char *argv[])
             printf("%12d: No\n", seek[k]);
         }
     }
-    // int *num = readIntoMemory("key.db");
-    // for(int i = 0; i < 100; i++){
-    //     printf("%d\n", num[i]);
-    // }
-    
-    // printf( "Seconds: %ld\n", tm.tv_sec );
-    // printf( "Microseconds: %d\n", tm.tv_usec );
     printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
     return 0;
 };
@@ -81,7 +88,6 @@ int main(int argc, char *argv[])
 int* inMemorySequential(int *key, int *seek, int key_len, int seek_len)
 {
     int *s = (int *)malloc(seek_len*sizeof(int));
-    // int s[seek_len];
     int i, j;
     for(i = 0; i < seek_len; i++){
         for(int j = 0; j < key_len; j++){
@@ -95,10 +101,71 @@ int* inMemorySequential(int *key, int *seek, int key_len, int seek_len)
     return s;
 };
 
-// void inMemoryBinary(char keyFileName[], char seekFileName[])
-// {
+int inMemoryBinary(int *key, int seek, int lo, int hi)
+{
+    int mid;
+    if( lo > hi)
+    {
+        return 0;
+    }
+    mid = ( lo + hi ) / 2;
+    if( key[mid] == seek )
+    {
+        return 1;
+    }
+    else if( seek > key[mid] )
+    {
+        return inMemoryBinary(key, seek, mid + 1, hi);
+    }
+    else if( seek < key[mid] )
+    {
+        return inMemoryBinary(key, seek, lo, mid - 1);
+    }
+}
 
-// }
+int* onDiskSequential(FILE *keyFile, int *seek, int key_len, int seek_len)
+{
+    int *s = (int *)malloc(seek_len*sizeof(int));
+    int i, j, tmp;
+    for(i = 0; i < seek_len; i++){
+        for(int j = 0; j < key_len; j++){
+            fseek( keyFile, j * 4, SEEK_SET);
+            fread( &tmp, 4, 1, keyFile);
+            if(tmp == seek[i]){
+                s[i] = 1;
+                break;
+            }
+            s[i] = 0;
+        }
+    }
+    return s;
+}
+
+int onDiskBinary(FILE *keyFile, int seek, int lo, int hi)
+{
+    int mid, tmp;
+    if( lo > hi)
+    {
+        return 0;
+    }
+    mid = ( lo + hi ) / 2;
+
+    fseek( keyFile, mid * sizeof(int), SEEK_SET);
+    fread( &tmp, sizeof(int), 1, keyFile);
+
+    if( tmp == seek )
+    {
+        return 1;
+    }
+    else if( seek > tmp )
+    {
+        return onDiskBinary(keyFile, seek, mid + 1, hi);
+    }
+    else if( seek < tmp )
+    {
+        return onDiskBinary(keyFile, seek, lo, mid - 1);
+    }
+}
 
 int* readIntoMemory(FILE *inp, int len){
     int *num = (int *)malloc(len*sizeof(int));
