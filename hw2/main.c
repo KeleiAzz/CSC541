@@ -94,20 +94,12 @@ int* calculate_field_length(char **command, int phrase_count)
     int i, j, k, *field_length = malloc(sizeof(int) * phrase_count);
     for(j = 0; j < phrase_count; j++)
     {
-        k = 0;
-        for(i = 0; i < 50; i++)
-        {
-            if(command[j][i] == '\0' | command[j][i] == '\n' | command[j][i] == ' ' ) break;
-            if(command[j][i])
-            {
-
-                printf("---%c\n", command[j][i]);
-                k++;
-
-            }
-        }
+        k = strlen(command[j]);
         printf("%d-----\n", k);
-        field_length[j] = k;
+        if(j == phrase_count - 1)
+            field_length[j] = k - 1;
+        else
+            field_length[j] = k;
     }
     return field_length;
 }
