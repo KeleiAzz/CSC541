@@ -13,16 +13,17 @@ int* readIntoMemory(FILE *inp, int len);
 int main(int argc, char *argv[])
 {
     struct timeval start_time, end_time;
-
+    
     FILE *keyFile, *seekFile;
 
     // Read the seek.db into memeory
     seekFile = fopen( argv[3], "rb");
     int seek_len = numOfInt(seekFile);
     int *seek = readIntoMemory( seekFile, seek_len );
+    // int *seek;
     fclose(seekFile);
-    int *result = (int *)malloc(seek_len*sizeof(int));
-
+    int *result = (int *)malloc(seek_len*4);
+    
     // Start recording time
     gettimeofday( &start_time, NULL );
     
@@ -36,15 +37,17 @@ int main(int argc, char *argv[])
         result = inMemorySequential(key, seek, key_len, seek_len);
     }
     else if (strcmp( argv[1], "--mem-bin") == 0)
-    {
+    {   
         keyFile = fopen( argv[2], "rb" );
-        int key_len = numOfInt(keyFile);
+        int key_len = numOfInt(keyFile); 
         int *key = readIntoMemory(keyFile, key_len);
-        fclose(keyFile);
-        for( int i = 0; i < seek_len; i++)
+        
+	   int i;
+        for( i = 0; i < seek_len; i++)
         {
             result[i] = inMemoryBinary(key, seek[i], 0, key_len - 1);
         }
+        fclose(keyFile);
     }
     else if (strcmp( argv[1], "--disk-lin") == 0)
     {
@@ -58,7 +61,8 @@ int main(int argc, char *argv[])
     {
         keyFile = fopen( argv[2], "rb" );
         int key_len = numOfInt(keyFile);
-        for( int i = 0; i < seek_len; i++)
+	   int i;
+        for( i = 0; i < seek_len; i++)
         {
             result[i] = onDiskBinary(keyFile, seek[i], 0, key_len - 1);
         }
@@ -81,6 +85,7 @@ int main(int argc, char *argv[])
             printf("%12d: No\n", seek[k]);
         }
     }
+	free(result);
     printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
     return 0;
 };
@@ -90,7 +95,7 @@ int* inMemorySequential(int *key, int *seek, int key_len, int seek_len)
     int *s = (int *)malloc(seek_len*sizeof(int));
     int i, j;
     for(i = 0; i < seek_len; i++){
-        for(int j = 0; j < key_len; j++){
+        for( j = 0; j < key_len; j++){
             if(key[j] == seek[i]){
                 s[i] = 1;
                 break;
@@ -128,7 +133,7 @@ int* onDiskSequential(FILE *keyFile, int *seek, int key_len, int seek_len)
     int *s = (int *)malloc(seek_len*sizeof(int));
     int i, j, tmp;
     for(i = 0; i < seek_len; i++){
-        for(int j = 0; j < key_len; j++){
+        for( j = 0; j < key_len; j++){
             fseek( keyFile, j * 4, SEEK_SET);
             fread( &tmp, 4, 1, keyFile);
             if(tmp == seek[i]){
@@ -170,7 +175,7 @@ int onDiskBinary(FILE *keyFile, int seek, int lo, int hi)
 int* readIntoMemory(FILE *inp, int len){
     int *num = (int *)malloc(len*sizeof(int));
     fread( num, sizeof(int), len, inp);
-    fclose(inp);
+    // fclose(inp);
     return num;
 }
 
