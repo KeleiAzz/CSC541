@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#define isascii(c)  ((c & ~0x7F) == 0)
+//#define isascii(c)  ((c & ~0x7F) == 0)
 char** parse_command(char *input);
 int* calculate_field_length(char **command, int phrase_count);
 int phrase_counter(char **command);
@@ -95,12 +95,12 @@ int* calculate_field_length(char **command, int phrase_count)
     for(j = 0; j < phrase_count; j++)
     {
         k = 0;
-        for(i = 0; i < 100; i++)
+        for(i = 0; i < 50; i++)
         {
-//            printf("---%c\n", command[0][i]);
-            if(isascii(command[j][i]) & command[j][i] != '\n' & command[j][i] != ' ' )
+            if(command[j][i] == '\0' | command[j][i] == '\n' | command[j][i] == ' ' ) break;
+            if(command[j][i])
             {
-                if(command[j][i] == '\0') break;
+
                 printf("---%c\n", command[j][i]);
                 k++;
 
