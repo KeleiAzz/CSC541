@@ -35,91 +35,13 @@ int main(int argc, char *argv[])
     if ( ( fp = fopen( "student.db", "r+b" ) ) == NULL)
     {
         fp = fopen( "student.db", "w+b" );
-        long offset = 0;
-        int record_counter = 0;
-        while(1){
-
-            char input[150];
-            fgets(input, 150, stdin);
-            int total_length = (int) strlen(input);
-            char **command = parse_command(input);
-            int phrase_count = phrase_counter(command);
-            int *phraseLength = calculatePhraseLength(command, phrase_count);
-            int i;
-            if(phrase_count == 3)
-            {
-                char key_char[phraseLength[1] + 1];
-                strncpy(key_char, command[1], phraseLength[1]);
-                key_char[phraseLength[1]] = '\0';
-                printf("----%s\n", key_char);
-                int pk = atoi(key_char);
-                printf("%d\n", pk);
-
-                if( record_counter == 0 | findRecordOffset(index, pk, 0, record_counter - 1) == 0)
-                {
-                    char record[phraseLength[2] + 1];
-                    strncpy(record, command[2], phraseLength[2]);
-                    record[phraseLength[2]] = '\0';
-                    printf("%s ---record\n", record);
-                    char **fields = parseRecord(record);
-                    for(i = 0; i < 3; i++)
-                    {
-                        printf("--%s--\n", fields[i]);
-                    }
-
-                    index_S *tmp;
-                    tmp = realloc(index, (record_counter + 1) * sizeof(index_S));
-                    if (tmp == NULL) {
-                        // handle failed realloc, temp_struct is unchanged
-                    } else {
-                        // everything went ok, update the original pointer (temp_struct)
-                        index = tmp;
-                    }
-                    index[record_counter].key = pk;
-                    index[record_counter].off = offset;
-                    record_counter++;
-                    sortIndex(index, record_counter);
-                    writeRecord(fp,fields, pk, -1);
-                    offset += sizeof(int) * 2 + phraseLength[2] - phraseLength[1] + sizeof(char);
-                    printf("%ld\n", offset);
-                }
-
-
-            }
-            else if(phrase_count == 2)
-            {
-                if(phraseLength[0] == 4)
-                {
-                    char key_char[phraseLength[1] + 1];
-                    strncpy(key_char, command[1], phraseLength[1]);
-                    key_char[phraseLength[1]] = '\0';
-                    printf("----%s\n", key_char);
-                    int pk = atoi(key_char);
-                    printf("%d\n", pk);
-                    rec_off = findRecordOffset(index, pk, 0, record_counter - 1);
-                    printf("%ld offset\n", rec_off);
-                }
-                if(phraseLength[0] == 4)
-                {
-
-                }
-            }
-            else if(phrase_count == 1)
-            {
-                break;
-            }
-
-        }
-        int i;
-        for(i = 0; i < record_counter - 1; i++)
-        {
-            printf("pk: %d  off: %ld\n", index[i].key, index[i].off);
-        }
         fclose(fp);
+        fp = fopen( "student.db", "r+b" );
     }
-    else
-    {
-        while(1){
+
+    long offset = 0;
+    int record_counter = 0;
+    while(1){
 
         char input[150];
         fgets(input, 150, stdin);
@@ -128,13 +50,49 @@ int main(int argc, char *argv[])
         int phrase_count = phrase_counter(command);
         int *phraseLength = calculatePhraseLength(command, phrase_count);
         int i;
-        for(i = 0; i < phrase_count; i++)
+        if(phrase_count == 3)
         {
-            printf("=-=-=%d\n", phraseLength[i]);
+            char key_char[phraseLength[1] + 1];
+            strncpy(key_char, command[1], phraseLength[1]);
+            key_char[phraseLength[1]] = '\0';
+            printf("----%s\n", key_char);
+            int pk = atoi(key_char);
+            printf("%d\n", pk);
+
+            if( record_counter == 0 | findRecordOffset(index, pk, 0, record_counter - 1) == 0)
+            {
+                char record[phraseLength[2] + 1];
+                strncpy(record, command[2], phraseLength[2]);
+                record[phraseLength[2]] = '\0';
+                printf("%s ---record\n", record);
+                char **fields = parseRecord(record);
+                for(i = 0; i < 3; i++)
+                {
+                    printf("--%s--\n", fields[i]);
+                }
+
+                index_S *tmp;
+                tmp = realloc(index, (record_counter + 1) * sizeof(index_S));
+                if (tmp == NULL) {
+                    // handle failed realloc, temp_struct is unchanged
+                } else {
+                    // everything went ok, update the original pointer (temp_struct)
+                    index = tmp;
+                }
+                index[record_counter].key = pk;
+                index[record_counter].off = offset;
+                record_counter++;
+                sortIndex(index, record_counter);
+                writeRecord(fp,fields, pk, -1);
+                offset += sizeof(int) * 2 + phraseLength[2] - phraseLength[1] + sizeof(char);
+                printf("%ld\n", offset);
+            }
+
+
         }
-
-
-            if(phrase_count == 3)
+        else if(phrase_count == 2)
+        {
+            if(phraseLength[0] == 4)
             {
                 char key_char[phraseLength[1] + 1];
                 strncpy(key_char, command[1], phraseLength[1]);
@@ -142,52 +100,26 @@ int main(int argc, char *argv[])
                 printf("----%s\n", key_char);
                 int pk = atoi(key_char);
                 printf("%d\n", pk);
-
-                char record[phraseLength[2] + 1];
-                strncpy(record, command[2], phraseLength[2]);
-                record[phraseLength[2]] = '\0';
-                printf("%s ---record\n", record);
-
-                char **fields = parseRecord(record);
-
-                for(i = 0; i < 3; i++)
-                {
-                    printf("--%s--\n", fields[i]);
-                }
-                writeRecord(fp,fields, pk, -1);
-
+                rec_off = findRecordOffset(index, pk, 0, record_counter - 1);
+                printf("%ld offset\n", rec_off);
             }
-            else if(phrase_count == 1)
+            if(phraseLength[0] == 4)
             {
-                break;
+
             }
-
         }
-
-        int *LAK;
-        LAK = getLengthAndKey(fp, 55);
-        int length = LAK[0], pk = LAK[1];
-        char **fields = readRecord(fp, 55, length);
-        int i;
-        for(i = 0; i < 3; i++)
+        else if(phrase_count == 1)
         {
-            printf("%s---\n", fields[i]);
+            break;
         }
 
-
-        fclose(fp);
-
-//        char act[phraseLength[0] + 1], lname[phraseLength[1]- phraseLength[0]], major[total_length- phraseLength[1]];
-//        strncpy(fname, &input[0], position[0]);
-
-
-//        rec_off = 0;
-//        fseek( fp, rec_off, SEEK_SET );
-//        fread( &rec_siz, sizeof( int ), 1, fp );
-//        buf = malloc( rec_siz + 1 );
-//        fread( buf, 1, rec_siz, fp );
-//        buf[ rec_siz ] = '\0';
     }
+    int i;
+    for(i = 0; i < record_counter - 1; i++)
+    {
+        printf("pk: %d  off: %ld\n", index[i].key, index[i].off);
+    }
+    fclose(fp);
 }
 
 void writeRecord(FILE *fp, char **fields, int pk, long offset)
