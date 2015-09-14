@@ -19,7 +19,8 @@ void writeRecord(FILE *fp, char record[], int pk, long offset);
 int* getLengthAndKey(FILE *fp, long offset);
 char* readRecord(FILE *fp, long offset);
 void sortIndex(index_S *index, int n);
-long findRecordOffset(index_S *index, int pk, int lo, int hi);
+int findRecordOffset(index_S *index, int pk, int lo, int hi);
+void removeIndex(index_S *index, int record_index, int record_counter);
 void saveIndex(index_S *index, int index_length);
 index_S* readIndex();
 int indexLength();
@@ -30,7 +31,7 @@ int main(int argc, char *argv[])
     FILE *fp; /* Input/output stream */
     long rec_off; /* Record offset */
     int rec_siz; /* Record size, in characters */
-    int record_counter;
+    int record_counter, avail_counter = 0;
     index_S *index = malloc(sizeof(index_S));
     avail_S *avail = malloc(sizeof(avail_S));
 /* If student.db doesn't exist, create it, otherwise read * its first record */
@@ -73,12 +74,12 @@ int main(int argc, char *argv[])
                 char record[phraseLength[2] + 1];
                 strncpy(record, command[2], phraseLength[2]);
 
-                char try[phraseLength[2] - phraseLength[1] + 1];
-                strncpy(try, command[2] + phraseLength[1], phraseLength[2] - phraseLength[1]);
-                try[phraseLength[2] - phraseLength[1]] = '\0';
+//                char try[phraseLength[2] + 1];
+//                strncpy(try, command[2], phraseLength[2]);
+//                try[phraseLength[2]] = '\0';
                 record[phraseLength[2]] = '\0';
 //                printf("%s ---record %s ---try\n", record, try);
-                char **fields = parseRecord(record);
+//                char **fields = parseRecord(record);
                 for(i = 0; i < 3; i++)
                 {
 //                    printf("--%s--\n", fields[i]);
@@ -87,6 +88,7 @@ int main(int argc, char *argv[])
                 index_S *temp;
                 temp = realloc(index, (record_counter + 1) * sizeof(index_S));
                 if (temp == NULL) {
+                    exit(EXIT_FAILURE);
                 } else {
                     index = temp;
                 }
@@ -94,9 +96,14 @@ int main(int argc, char *argv[])
                 index[record_counter].off = offset;
                 record_counter++;
                 sortIndex(index, record_counter);
-                writeRecord(fp, try, pk, -1);
-                offset += sizeof(int) * 2 + phraseLength[2] - phraseLength[1] + sizeof(char);
+//                printf("%s ---------------record\n", record);
+                writeRecord(fp, record, pk, -1);
+                offset += sizeof(int) * 1 + phraseLength[2];
 //                printf("%ld\n", offset);
+            }
+            else
+            {
+                printf("Record with SID=%d exists\n", pk);
             }
 
 
@@ -111,15 +118,16 @@ int main(int argc, char *argv[])
 //                printf("----%s\n", key_char);
                 int pk = atoi(key_char);
 //                printf("%d\n", pk);
-                rec_off = index[findRecordOffset(index, pk, 0, record_counter - 1)].off;
-                if(rec_off == -1)
+//                rec_off = .off;
+                int record_index = findRecordOffset(index, pk, 0, record_counter - 1);
+                if( record_index == -1)
                 {
                     printf("No record with SID=%d exists\n", pk);
                 }
                 else
                 {
-                    char *record = readRecord(fp, rec_off);
-                    printf("%d%s\n", pk, record);
+                    char *record = readRecord(fp, index[record_index].off);
+                    printf("%s\n", record);
                 }
 
             }
@@ -129,14 +137,32 @@ int main(int argc, char *argv[])
                 strncpy(key_char, command[1], phraseLength[1]);
                 key_char[phraseLength[1]] = '\0';
                 int pk = atoi(key_char);
-                rec_off = index[findRecordOffset(index, pk, 0, record_counter - 1)].off;
-                if(rec_off == -1)
+                int record_index = findRecordOffset(index, pk, 0, record_counter - 1);
+                if(record_index == -1)
                 {
                     printf("No record with SID=%d exists\n", pk);
                 }
                 else
                 {
+//                    printf("Record with SID=%d exists\n", pk);
+                    int record_length;
+                    fseek(fp, index[record_index].off, SEEK_SET);
+                    fread(&record_length, sizeof(int), 1, fp);
+                    printf("%d record lentgh\n",record_length);
 
+//                    avail[]
+                    avail_S *temp;
+                    temp = realloc(avail, (avail_counter + 1) * sizeof(avail_S));
+                    if (temp == NULL) {
+                        exit(EXIT_FAILURE);
+                    } else {
+                        avail = temp;
+                    }
+                    avail[avail_counter].off = index[record_index].off;
+                    avail[avail_counter].siz = record_length;
+                    avail_counter++;
+                    removeIndex(index, record_index, record_counter);
+                    record_counter--;
                 }
             }
         }
@@ -152,14 +178,16 @@ int main(int argc, char *argv[])
     {
         printf( "key=%d: offset=%ld\n", index[i].key, index[i].off );
     }
+    int hole_space = 0;
+    printf("Availability:\n");
+    for(i = 0; i < avail_counter; i++)
+    {
+        printf("size=%d: offset=%ld\n", avail[i].siz, avail[i].off);
+        hole_space += avail[i].siz;
+    }
+    printf("Number of holes: %d\n", avail_counter);
+    printf("Hole space: %d\n", hole_space);
     saveIndex(index, record_counter);
-//    int *LAK;
-//    LAK = getLengthAndKey(fp, 55);
-//    int length = LAK[0], pk = LAK[1];
-//    char *record = readRecord(fp, 55);
-////    int i;
-//
-////    printf("%s---\n", record);
 
     fclose(fp);
 }
@@ -174,11 +202,11 @@ void writeRecord(FILE *fp, char record[], int pk, long offset)
     {
         fseek(fp, offset, SEEK_SET);
     }
-    fseek(fp, 0, SEEK_END);
-    int length = (int) (sizeof(int) * 2 + sizeof(char) * (strlen(record) + 1));
+//    fseek(fp, 0, SEEK_END);
+    int length = (int) (sizeof(int) * 1 + sizeof(char) * (strlen(record)));
     fwrite( &length, sizeof(int), 1, fp);
-    fwrite(&pk, sizeof(int), 1, fp);
-    fwrite(record, sizeof(char), (size_t) (strlen(record) + 1), fp);
+//    fwrite(&pk, sizeof(int), 1, fp);
+    fwrite(record, sizeof(char), (size_t) (strlen(record)), fp);
 }
 
 char** parse_command(char *input)
@@ -220,11 +248,16 @@ int* calculatePhraseLength(char **command, int phrase_count)
     for(j = 0; j < phrase_count; j++)
     {
         k = (int) strlen(command[j]);
-//        printf("%d-----\n", k);
+
         if(j == phrase_count - 1)
+        {
             field_length[j] = k - 1;
+        }
         else
+        {
             field_length[j] = k;
+        }
+//        printf("%d--%s---\n", field_length[j], command[j]);
     }
     return field_length;
 }
@@ -262,10 +295,10 @@ char* readRecord(FILE *fp, long offset)
     fseek(fp, offset, SEEK_SET);
     int length;
     fread(&length, sizeof(int), 1, fp);
-    fseek(fp, offset + 8, SEEK_SET);
-    char *record = malloc((size_t) (length - 8));
+    fseek(fp, offset + 4, SEEK_SET);
+    char *record = malloc((size_t) (length - 4));
 //    record[0] = 'K';
-    fread(record, sizeof(char), (size_t) (length - 8), fp);
+    fread(record, sizeof(char), (size_t) (length - 4), fp);
 //    char **fields;
 //    fields = parseRecord(record);
     return record;
@@ -289,7 +322,7 @@ void sortIndex(index_S *index, int n)
     }
 }
 
-long findRecordOffset(index_S *index, int pk, int lo, int hi)
+int findRecordOffset(index_S *index, int pk, int lo, int hi)
 {
     int mid;
     if( lo > hi)
@@ -311,9 +344,15 @@ long findRecordOffset(index_S *index, int pk, int lo, int hi)
     }
 }
 
-void removeIndex(index_S *index, int position)
+void removeIndex(index_S *index, int record_index, int record_counter)
 {
-
+    int i;
+    for(i = record_index; i < record_counter - 1; i++) index[i] = index[i + 1];
+    index_S *temp = realloc(index, (record_counter - 1) * sizeof(index_S) );
+    if (temp == NULL && record_counter > 1) {
+        exit(EXIT_FAILURE);
+    }
+    index = temp;
 }
 
 void saveIndex(index_S *index, int index_length)
