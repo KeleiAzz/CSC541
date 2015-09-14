@@ -15,7 +15,7 @@ char** parse_command(char *input);
 int*calculatePhraseLength(char **command, int phrase_count);
 int phrase_counter(char **command);
 char** parseRecord(char *record);
-void writeRecord(FILE *fp, char **fields, int pk, long offset);
+void writeRecord(FILE *fp, char record[], int pk, long offset);
 int* getLengthAndKey(FILE *fp, long offset);
 char** readRecord(FILE *fp, long offset, int length);
 void sortIndex(index_S *index, int n);
@@ -42,7 +42,6 @@ int main(int argc, char *argv[])
     long offset = 0;
     int record_counter = 0;
     while(1){
-
         char input[150];
         fgets(input, 150, stdin);
         int total_length = (int) strlen(input);
@@ -63,27 +62,29 @@ int main(int argc, char *argv[])
             {
                 char record[phraseLength[2] + 1];
                 strncpy(record, command[2], phraseLength[2]);
+
+                char try[phraseLength[2] - phraseLength[1] + 1];
+                strncpy(try, command[2] + phraseLength[1], phraseLength[2] - phraseLength[1]);
+                try[phraseLength[2] - phraseLength[1]] = '\0';
                 record[phraseLength[2]] = '\0';
-                printf("%s ---record\n", record);
+                printf("%s ---record %s ---try\n", record, try);
                 char **fields = parseRecord(record);
                 for(i = 0; i < 3; i++)
                 {
                     printf("--%s--\n", fields[i]);
                 }
 
-                index_S *tmp;
-                tmp = realloc(index, (record_counter + 1) * sizeof(index_S));
-                if (tmp == NULL) {
-                    // handle failed realloc, temp_struct is unchanged
+                index_S *temp;
+                temp = realloc(index, (record_counter + 1) * sizeof(index_S));
+                if (temp == NULL) {
                 } else {
-                    // everything went ok, update the original pointer (temp_struct)
-                    index = tmp;
+                    index = temp;
                 }
                 index[record_counter].key = pk;
                 index[record_counter].off = offset;
                 record_counter++;
                 sortIndex(index, record_counter);
-                writeRecord(fp,fields, pk, -1);
+                writeRecord(fp, try, pk, -1);
                 offset += sizeof(int) * 2 + phraseLength[2] - phraseLength[1] + sizeof(char);
                 printf("%ld\n", offset);
             }
@@ -119,10 +120,20 @@ int main(int argc, char *argv[])
     {
         printf("pk: %d  off: %ld\n", index[i].key, index[i].off);
     }
+
+    int *LAK;
+    LAK = getLengthAndKey(fp, 55);
+    int length = LAK[0], pk = LAK[1];
+    char **fields = readRecord(fp, 55, length);
+//    int i;
+    for(i = 0; i < 3; i++)
+    {
+        printf("%s---\n", fields[i]);
+    }
     fclose(fp);
 }
 
-void writeRecord(FILE *fp, char **fields, int pk, long offset)
+void writeRecord(FILE *fp, char record[], int pk, long offset)
 {
     if(offset == -1)
     {
@@ -132,19 +143,23 @@ void writeRecord(FILE *fp, char **fields, int pk, long offset)
     {
         fseek(fp, offset, SEEK_SET);
     }
-
-    int length = (int) (sizeof(int) * 2 + sizeof(char) * (4 + strlen(fields[0]) + strlen(fields[1]) + strlen(fields[2])));
+    fseek(fp, 0, SEEK_END);
+    int length = (int) (sizeof(int) * 2 + sizeof(char) * (strlen(record) + 1));
     fwrite( &length, sizeof(int), 1, fp);
     fwrite(&pk, sizeof(int), 1, fp);
-//    fseek(fp, sizeof(int), SEEK_SET);
-    fwrite("|", sizeof(char), 1, fp);
-//    fseek(fp, 0, SEEK_END);
-    fwrite(fields[0], sizeof(char), strlen(fields[0]), fp);
-    fwrite("|", sizeof(char), 1, fp);
-    fwrite(fields[1], sizeof(char), strlen(fields[1]), fp);
-    fwrite("|", sizeof(char), 1, fp);
-    fwrite(fields[2], sizeof(char), strlen(fields[2]), fp);
-    fwrite("\0", sizeof(char), 1, fp);
+    fwrite(record, sizeof(char), (size_t) (strlen(record) + 1), fp);
+//    int length = (int) (sizeof(int) * 2 + sizeof(char) * (4 + strlen(fields[0]) + strlen(fields[1]) + strlen(fields[2])));
+//    fwrite( &length, sizeof(int), 1, fp);
+//    fwrite(&pk, sizeof(int), 1, fp);
+////    fseek(fp, sizeof(int), SEEK_SET);
+//    fwrite("|", sizeof(char), 1, fp);
+////    fseek(fp, 0, SEEK_END);
+//    fwrite(fields[0], sizeof(char), strlen(fields[0]), fp);
+//    fwrite("|", sizeof(char), 1, fp);
+//    fwrite(fields[1], sizeof(char), strlen(fields[1]), fp);
+//    fwrite("|", sizeof(char), 1, fp);
+//    fwrite(fields[2], sizeof(char), strlen(fields[2]), fp);
+//    fwrite("\0", sizeof(char), 1, fp);
 }
 
 char** parse_command(char *input)
