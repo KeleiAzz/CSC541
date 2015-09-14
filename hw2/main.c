@@ -24,10 +24,12 @@ int indexLength();
 int availLength();
 int findSuitableHole(avail_S *avail, int avail_length, int record_length);
 int bestFit(const void *a, const void *b);
-void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_counter);
+int worstFit(const void *a, const void *b);
+void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_counter, int method);
 
 int main(int argc, char *argv[])
 {
+    int method = 1;
     FILE *fp; /* Input/output stream */
     int record_counter, avail_counter = 0;
     index_S *index = malloc(sizeof(index_S));
@@ -75,7 +77,7 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    updateAvail(avail, 4 + phraseLength[2], hole_index, avail_counter);
+                    updateAvail(avail, 4 + phraseLength[2], hole_index, avail_counter, method);
                     offset = avail[hole_index].off;
                 }
                 char record[phraseLength[2] + 1];
@@ -149,7 +151,7 @@ int main(int argc, char *argv[])
                     avail_counter++;
                     removeIndex(index, record_index, record_counter);
                     record_counter--;
-                    qsort(avail, (size_t) avail_counter, sizeof(avail_S), bestFit);
+
                 }
             }
         }
@@ -381,6 +383,13 @@ int bestFit(const void *a, const void *b)
     return ( holeA->siz - holeB->siz);
 }
 
+int worstFit(const void *a, const void *b)
+{
+    avail_S *holeA = (avail_S *)a;
+    avail_S *holeB = (avail_S *)b;
+    return ( holeB->siz - holeA->siz);
+}
+
 int findSuitableHole(avail_S *avail, int avail_length, int record_length)
 {
     int i;
@@ -391,8 +400,9 @@ int findSuitableHole(avail_S *avail, int avail_length, int record_length)
     return -1;
 }
 
-void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_counter)
+void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_counter, int method)
 {
+
     int i;
     int hole_size = avail[hole_index].siz;
     long offset = avail[hole_index].off;
@@ -409,6 +419,14 @@ void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_co
     {
         avail[avail_counter - 1].off = offset + record_length;
         avail[avail_counter - 1].siz = hole_size - record_length;
+    }
+    if(method == 2)
+    {
+        qsort(avail, (size_t) avail_counter, sizeof(avail_S), bestFit);
+    }
+    if(method == 3)
+    {
+        qsort(avail, (size_t) avail_counter, sizeof(avail_S), worstFit);
     }
 
 }
