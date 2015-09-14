@@ -20,7 +20,9 @@ int* getLengthAndKey(FILE *fp, long offset);
 char* readRecord(FILE *fp, long offset);
 void sortIndex(index_S *index, int n);
 long findRecordOffset(index_S *index, int pk, int lo, int hi);
-
+void saveIndex(index_S *index, int index_length);
+index_S* readIndex();
+int indexLength();
 
 int main(int argc, char *argv[])
 {
@@ -28,6 +30,7 @@ int main(int argc, char *argv[])
     FILE *fp; /* Input/output stream */
     long rec_off; /* Record offset */
     int rec_siz; /* Record size, in characters */
+    int record_counter;
     index_S *index = malloc(sizeof(index_S));
     avail_S *avail = malloc(sizeof(avail_S));
 /* If student.db doesn't exist, create it, otherwise read * its first record */
@@ -37,9 +40,17 @@ int main(int argc, char *argv[])
         fp = fopen( "student.db", "w+b" );
         fclose(fp);
         fp = fopen( "student.db", "r+b" );
+
+        record_counter = 0;
+    }
+    else
+    {
+        index = readIndex();
+        record_counter = indexLength();
+//        printf("%d\n", record_counter);
     }
     long offset = 0;
-    int record_counter = 0;
+
     while(1){
         char input[150];
         fgets(input, 150, stdin);
@@ -100,7 +111,7 @@ int main(int argc, char *argv[])
 //                printf("----%s\n", key_char);
                 int pk = atoi(key_char);
 //                printf("%d\n", pk);
-                rec_off = findRecordOffset(index, pk, 0, record_counter - 1);
+                rec_off = index[findRecordOffset(index, pk, 0, record_counter - 1)].off;
                 if(rec_off == -1)
                 {
                     printf("No record with SID=%d exists\n", pk);
@@ -118,7 +129,7 @@ int main(int argc, char *argv[])
                 strncpy(key_char, command[1], phraseLength[1]);
                 key_char[phraseLength[1]] = '\0';
                 int pk = atoi(key_char);
-                rec_off = findRecordOffset(index, pk, 0, record_counter - 1);
+                rec_off = index[findRecordOffset(index, pk, 0, record_counter - 1)].off;
                 if(rec_off == -1)
                 {
                     printf("No record with SID=%d exists\n", pk);
@@ -137,11 +148,11 @@ int main(int argc, char *argv[])
     }
     printf("Index:\n");
     int i;
-    for(i = 0; i < record_counter - 1; i++)
+    for(i = 0; i < record_counter; i++)
     {
         printf( "key=%d: offset=%ld\n", index[i].key, index[i].off );
     }
-
+    saveIndex(index, record_counter);
 //    int *LAK;
 //    LAK = getLengthAndKey(fp, 55);
 //    int length = LAK[0], pk = LAK[1];
@@ -288,7 +299,7 @@ long findRecordOffset(index_S *index, int pk, int lo, int hi)
     mid = ( lo + hi ) / 2;
     if( index[mid].key == pk )
     {
-        return index[mid].off;
+        return mid;
     }
     else if( pk > index[mid].key )
     {
@@ -298,4 +309,37 @@ long findRecordOffset(index_S *index, int pk, int lo, int hi)
     {
         return findRecordOffset(index, pk, lo, mid - 1);
     }
+}
+
+void removeIndex(index_S *index, int position)
+{
+
+}
+
+void saveIndex(index_S *index, int index_length)
+{
+    FILE *out = fopen( "index.bin", "wb" );
+    fwrite( index, sizeof( index_S ), (size_t) index_length, out );
+    fclose( out );
+}
+
+index_S* readIndex()
+{
+    FILE *in = fopen("index.bin", "rb");
+    fseek(in, 0, SEEK_END);
+    unsigned long len = (unsigned long)ftell(in);
+    rewind(in);
+    index_S *index = malloc( len);
+    fread( index, sizeof(index_S), len/sizeof(index_S), in);
+    fclose(in);
+    return index;
+}
+
+int indexLength()
+{
+    FILE *in = fopen("index.bin", "rb");
+    fseek(in, 0, SEEK_END);
+    unsigned long len = (unsigned long)ftell(in);
+    fclose(in);
+    return (int) (len/sizeof(index_S));
 }
