@@ -9,9 +9,14 @@
 #include <string.h>
 //#define isascii(c)  ((c & ~0x7F) == 0)
 char** parse_command(char *input);
-int* calculate_field_length(char **command, int phrase_count);
+int*calculatePhraseLength(char **command, int phrase_count);
 int phrase_counter(char **command);
+char** parseRecord(char *record);
+void writeRecord(FILE *fp, char **fields, int pk, long offset);
 
+
+typedef struct { int key; /* Record's key */ long off; /* Record's offset in file */ } index_S;
+typedef struct { int siz; /* Hole's size */ long off; /* Hole's offset in file */ } avail_S;
 
 int main(int argc, char *argv[])
 {
@@ -22,38 +27,88 @@ int main(int argc, char *argv[])
 
 /* If student.db doesn't exist, create it, otherwise read * its first record */
 
-    if ( ( fp = fopen( "student.db", "r+b" ) ) == NULL )
+    if ( ( fp = fopen( "student.db", "r+b" ) ) == NULL)
     {
         fp = fopen( "student.db", "w+b" );
-        int x[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
+//        int x[10] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 0};
         char *y = "712412913|Ford|Rob|Phi";
 
         fwrite(y, sizeof(char), 22, fp);
         fclose(fp);
     }
     else
-    {
-        char record[100];
-        fgets(record, 100, stdin);
+    {   while(1){
 
-        char **command = parse_command(record);
+        char input[150];
+        fgets(input, 150, stdin);
+        int total_length = (int) strlen(input);
+        char **command = parse_command(input);
         int phrase_count = phrase_counter(command);
-        int *fields_length = calculate_field_length(command, phrase_count);
+        int *phraseLength = calculatePhraseLength(command, phrase_count);
         int i;
         for(i = 0; i < phrase_count; i++)
         {
-            printf("=-=-=%d\n", fields_length[i]);
+            printf("=-=-=%d\n", phraseLength[i]);
         }
 
 
+            if(phrase_count == 3)
+            {
+                char key_char[phraseLength[1] + 1];
+                strncpy(key_char, command[1], phraseLength[1]);
+                key_char[phraseLength[1]] = '\0';
+                printf("----%s\n", key_char);
+                int pk = atoi(key_char);
+                printf("%d\n", pk);
 
-        rec_off = 0;
-        fseek( fp, rec_off, SEEK_SET );
-        fread( &rec_siz, sizeof( int ), 1, fp );
-        buf = malloc( rec_siz + 1 );
-        fread( buf, 1, rec_siz, fp );
-        buf[ rec_siz ] = '\0';
+                char record[phraseLength[2] + 1];
+                strncpy(record, command[2], phraseLength[2]);
+                record[phraseLength[2]] = '\0';
+                printf("%s ---record\n", record);
+
+                char **fields = parseRecord(record);
+
+                for(i = 0; i < 3; i++)
+                {
+                    printf("--%s--\n", fields[i]);
+                }
+                writeRecord(fp,fields, pk, 0);
+            }
+            else if(phrase_count == 1)
+            {
+                break;
+            }
+
+        }
+        fclose(fp);
+//        char act[phraseLength[0] + 1], lname[phraseLength[1]- phraseLength[0]], major[total_length- phraseLength[1]];
+//        strncpy(fname, &input[0], position[0]);
+
+
+//        rec_off = 0;
+//        fseek( fp, rec_off, SEEK_SET );
+//        fread( &rec_siz, sizeof( int ), 1, fp );
+//        buf = malloc( rec_siz + 1 );
+//        fread( buf, 1, rec_siz, fp );
+//        buf[ rec_siz ] = '\0';
     }
+}
+
+void writeRecord(FILE *fp, char **fields, int pk, long offset)
+{
+
+    fseek(fp, offset, SEEK_END);
+    int length = (int) (sizeof(int) * 2 + sizeof(char) * (3 + strlen(fields[0]) + strlen(fields[1]) + strlen(fields[2])));
+    fwrite( &length, sizeof(int), 1, fp);
+    fwrite(&pk, sizeof(int), 1, fp);
+//    fseek(fp, sizeof(int), SEEK_SET);
+    fwrite("|", sizeof(char), 1, fp);
+//    fseek(fp, 0, SEEK_END);
+    fwrite(fields[0], sizeof(char), strlen(fields[0]), fp);
+    fwrite("|", sizeof(char), 1, fp);
+    fwrite(fields[1], sizeof(char), strlen(fields[1]), fp);
+    fwrite("|", sizeof(char), 1, fp);
+    fwrite(fields[2], sizeof(char), strlen(fields[2]), fp);
 }
 
 char** parse_command(char *input)
@@ -88,14 +143,14 @@ int phrase_counter(char **command)
     return phrase_count;
 }
 
-int* calculate_field_length(char **command, int phrase_count)
+int* calculatePhraseLength(char **command, int phrase_count)
 {
 
-    int i, j, k, *field_length = malloc(sizeof(int) * phrase_count);
+    int j, k, *field_length = malloc(sizeof(int) * phrase_count);
     for(j = 0; j < phrase_count; j++)
     {
-        k = strlen(command[j]);
-        printf("%d-----\n", k);
+        k = (int) strlen(command[j]);
+//        printf("%d-----\n", k);
         if(j == phrase_count - 1)
             field_length[j] = k - 1;
         else
@@ -104,6 +159,21 @@ int* calculate_field_length(char **command, int phrase_count)
     return field_length;
 }
 
+char** parseRecord(char *record)
+{
+    char **fields = malloc(sizeof(char *) * 3);
+    char *p;
+    p = strtok(record, "|");
+
+    int i = 0;
+    while(i < 3)
+    {
+        p = strtok(NULL, "|");
+        fields[i] = p;
+        i++;
+    }
+    return fields;
+}
 
 void get_command()
 {
