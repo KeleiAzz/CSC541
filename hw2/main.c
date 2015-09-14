@@ -13,6 +13,8 @@ int*calculatePhraseLength(char **command, int phrase_count);
 int phrase_counter(char **command);
 char** parseRecord(char *record);
 void writeRecord(FILE *fp, char **fields, int pk, long offset);
+int* getLengthAndKey(FILE *fp, int offset);
+char** readRecord(FILE *fp, int offset, int length);
 
 
 typedef struct { int key; /* Record's key */ long off; /* Record's offset in file */ } index_S;
@@ -80,7 +82,20 @@ int main(int argc, char *argv[])
             }
 
         }
+
+        int *LAK;
+        LAK = getLengthAndKey(fp, 27);
+        int length = LAK[0], pk = LAK[1];
+        char **fields = readRecord(fp, 27, length);
+        int i;
+        for(i = 0; i < 3; i++)
+        {
+            printf("%s---\n", fields[i]);
+        }
+
+
         fclose(fp);
+
 //        char act[phraseLength[0] + 1], lname[phraseLength[1]- phraseLength[0]], major[total_length- phraseLength[1]];
 //        strncpy(fname, &input[0], position[0]);
 
@@ -98,7 +113,7 @@ void writeRecord(FILE *fp, char **fields, int pk, long offset)
 {
 
     fseek(fp, offset, SEEK_END);
-    int length = (int) (sizeof(int) * 2 + sizeof(char) * (3 + strlen(fields[0]) + strlen(fields[1]) + strlen(fields[2])));
+    int length = (int) (sizeof(int) * 2 + sizeof(char) * (4 + strlen(fields[0]) + strlen(fields[1]) + strlen(fields[2])));
     fwrite( &length, sizeof(int), 1, fp);
     fwrite(&pk, sizeof(int), 1, fp);
 //    fseek(fp, sizeof(int), SEEK_SET);
@@ -109,6 +124,7 @@ void writeRecord(FILE *fp, char **fields, int pk, long offset)
     fwrite(fields[1], sizeof(char), strlen(fields[1]), fp);
     fwrite("|", sizeof(char), 1, fp);
     fwrite(fields[2], sizeof(char), strlen(fields[2]), fp);
+    fwrite("\0", sizeof(char), 1, fp);
 }
 
 char** parse_command(char *input)
@@ -175,40 +191,25 @@ char** parseRecord(char *record)
     return fields;
 }
 
-void get_command()
+int* getLengthAndKey(FILE *fp, int offset)
 {
-    char act[5];
-    int id;
-    char record[100];
-    int i;
-    printf("\n");
-    scanf("%s %d %*d|%s",act, &id, record);
-    printf("%s %d %d|%s\n", act, id, id, record);
-    printf("size of record: %lu\n", sizeof(record));
-//        int i;
-    int position[2];
-    int j = 0, end;
-    for(i = 0; i < sizeof(record); i++)
-    {
-        if (record[i])
-        {
-            if( record[i] == '|' )
-            {
-                position[j++] = i;
-                printf("%d %c\n", position[j-1], record[i]);
-            }
-        }
-        else
-        {
-            end = i;
-            printf("%d\n", end);
-            break;
-        }
-    }
+    fseek(fp, offset, SEEK_SET);
+    int length, pk;
+    fread(&length, sizeof(int), 1, fp);
+    fread(&pk, sizeof(int), 1, fp);
+    int *res = malloc(sizeof(int) * 2);
+    res[0] = length;
+    res[1] = pk;
+    return res;
+}
 
-    char fname[position[0] + 1], lname[position[1]-position[0]], major[end-position[1]];
-    strncpy(fname, &record[0], position[0]);
-    fname[position[0]] = '\0';
-    printf("%s\n", fname);
-
+char** readRecord(FILE *fp, int offset, int length)
+{
+    fseek(fp, offset + 8, SEEK_SET);
+    char *record = malloc((size_t) (length - 7));
+    record[0] = 'K';
+    fread(&record[1], sizeof(char), (size_t) (length - 7), fp);
+    char **fields;
+    fields = parseRecord(record);
+    return fields;
 }
