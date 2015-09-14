@@ -11,9 +11,7 @@ typedef struct { int siz; /* Hole's size */ long off; /* Hole's offset in file *
 char** parse_command(char *input);
 int*calculatePhraseLength(char **command, int phrase_count);
 int phrase_counter(char **command);
-//char** parseRecord(char *record);
-void writeRecord(FILE *fp, char record[], long offset);
-//int* getLengthAndKey(FILE *fp, long offset);
+long writeRecord(FILE *fp, char record[], long offset);
 char* readRecord(FILE *fp, long offset);
 void sortIndex(index_S *index, int n);
 int findRecordOffset(index_S *index, int pk, int lo, int hi);
@@ -24,7 +22,9 @@ index_S* readIndex();
 avail_S* readAvail();
 int indexLength();
 int availLength();
+int findSuitableHole(avail_S *avail, int avail_length, int record_length);
 int bestFit(const void *a, const void *b);
+void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_counter);
 
 int main(int argc, char *argv[])
 {
@@ -58,17 +58,26 @@ int main(int argc, char *argv[])
         int phrase_count = phrase_counter(command);
         int *phraseLength = calculatePhraseLength(command, phrase_count);
         int i;
-        if(phrase_count == 3)
+        if(phrase_count == 3)  //Add a record
         {
             char key_char[phraseLength[1] + 1];
             strncpy(key_char, command[1], phraseLength[1]);
             key_char[phraseLength[1]] = '\0';
-//            printf("----%s\n", key_char);
             int pk = atoi(key_char);
-//            printf("%d\n", pk);
-
             if( record_counter == 0 | findRecordOffset(index, pk, 0, record_counter - 1) == -1)
             {
+                int hole_index = findSuitableHole(avail, avail_counter, 4 + phraseLength[2]);
+                if(hole_index == -1)
+                {
+                    offset = -1;
+
+                    //no need to update avail list
+                }
+                else
+                {
+                    updateAvail(avail, 4 + phraseLength[2], hole_index, avail_counter);
+                    offset = avail[hole_index].off;
+                }
                 char record[phraseLength[2] + 1];
                 strncpy(record, command[2], phraseLength[2]);
                 record[phraseLength[2]] = '\0';
@@ -79,21 +88,21 @@ int main(int argc, char *argv[])
                 } else {
                     index = temp;
                 }
+                offset = writeRecord(fp, record, offset);
                 index[record_counter].key = pk;
                 index[record_counter].off = offset;
                 record_counter++;
                 sortIndex(index, record_counter);
-                writeRecord(fp, record, -1);
-                offset += sizeof(int) * 1 + phraseLength[2];
+//                offset += sizeof(int) * 1 + phraseLength[2];
             }
             else
             {
                 printf("Record with SID=%d exists\n", pk);
             }
         }
-        else if(phrase_count == 2)
+        else if(phrase_count == 2) //find or delete
         {
-            if(phraseLength[0] == 4)
+            if(phraseLength[0] == 4) //find
             {
                 char key_char[phraseLength[1] + 1];
                 strncpy(key_char, command[1], phraseLength[1]);
@@ -111,7 +120,7 @@ int main(int argc, char *argv[])
                 }
 
             }
-            if(phraseLength[0] == 3)
+            if(phraseLength[0] == 3)  //delete
             {
                 char key_char[phraseLength[1] + 1];
                 strncpy(key_char, command[1], phraseLength[1]);
@@ -144,7 +153,7 @@ int main(int argc, char *argv[])
                 }
             }
         }
-        else if(phrase_count == 1)
+        else if(phrase_count == 1) //end
         {
             break;
         }
@@ -171,11 +180,12 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-void writeRecord(FILE *fp, char record[], long offset)
+long writeRecord(FILE *fp, char record[], long offset)
 {
     if(offset == -1)
     {
         fseek(fp, 0, SEEK_END);
+        offset = ftell(fp);
     }
     else
     {
@@ -186,6 +196,8 @@ void writeRecord(FILE *fp, char record[], long offset)
     fwrite( &length, sizeof(int), 1, fp);
 //    fwrite(&pk, sizeof(int), 1, fp);
     fwrite(record, sizeof(char), (size_t) (strlen(record)), fp);
+    return offset;
+
 }
 
 char** parse_command(char *input)
@@ -240,34 +252,6 @@ int* calculatePhraseLength(char **command, int phrase_count)
     }
     return field_length;
 }
-
-//char** parseRecord(char *record)
-//{
-//    char **fields = malloc(sizeof(char *) * 3);
-//    char *p;
-//    p = strtok(record, "|");
-//
-//    int i = 0;
-//    while(i < 3)
-//    {
-//        p = strtok(NULL, "|");
-//        fields[i] = p;
-//        i++;
-//    }
-//    return fields;
-//}
-//
-//int* getLengthAndKey(FILE *fp, long offset)
-//{
-//    fseek(fp, offset, SEEK_SET);
-//    int length, pk;
-//    fread(&length, sizeof(int), 1, fp);
-//    fread(&pk, sizeof(int), 1, fp);
-//    int *res = malloc(sizeof(int) * 2);
-//    res[0] = length;
-//    res[1] = pk;
-//    return res;
-//}
 
 char* readRecord(FILE *fp, long offset)
 {
@@ -395,4 +379,36 @@ int bestFit(const void *a, const void *b)
     avail_S *holeA = (avail_S *)a;
     avail_S *holeB = (avail_S *)b;
     return ( holeA->siz - holeB->siz);
+}
+
+int findSuitableHole(avail_S *avail, int avail_length, int record_length)
+{
+    int i;
+    for( i = 0; i < avail_length; i++ )
+    {
+        if(avail[i].siz > record_length) return i;
+    }
+    return -1;
+}
+
+void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_counter)
+{
+    int i;
+    int hole_size = avail[hole_index].siz;
+    long offset = avail[hole_index].off;
+    for(i = hole_index; i < avail_counter - 1; i++) avail[i] = avail[i + 1];
+    if(hole_size == record_length)
+    {
+        avail_S *temp = realloc(avail, (avail_counter - 1) * sizeof(avail_S) );
+        if (temp == NULL && avail_counter > 1) {
+            exit(EXIT_FAILURE);
+        }
+        avail = temp;
+    }
+    else
+    {
+        avail[avail_counter - 1].off = offset + record_length;
+        avail[avail_counter - 1].siz = hole_size - record_length;
+    }
+
 }
