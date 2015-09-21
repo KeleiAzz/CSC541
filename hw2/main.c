@@ -30,6 +30,18 @@ void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_co
 int main(int argc, char *argv[])
 {
     int method = 1;
+    if( strcmp( argv[1], "--first-fit") == 0 )
+    {
+        method = 1;
+    }
+    else if( strcmp( argv[1], "--best-fit") == 0 )
+    {
+        method = 2;
+    }
+    else if( strcmp( argv[1], "--worst-fit") == 0 )
+    {
+        method = 3;
+    }
     FILE *fp; /* Input/output stream */
     int record_counter, avail_counter = 0;
     index_S *index = malloc(sizeof(index_S));
@@ -149,6 +161,14 @@ int main(int argc, char *argv[])
                     avail[avail_counter].off = index[record_index].off;
                     avail[avail_counter].siz = record_length;
                     avail_counter++;
+                    if(method == 2)
+                    {
+                        qsort(avail, (size_t) avail_counter, sizeof(avail_S), bestFit);
+                    }
+                    if(method == 3)
+                    {
+                        qsort(avail, (size_t) avail_counter, sizeof(avail_S), worstFit);
+                    }
                     removeIndex(index, record_index, record_counter);
                     record_counter--;
 
