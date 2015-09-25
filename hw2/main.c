@@ -297,9 +297,10 @@ char* readRecord(FILE *fp, long offset)
     int length;
     fread(&length, sizeof(int), 1, fp);
     fseek(fp, offset + 4, SEEK_SET);
-    char *record = malloc((size_t) (length - 4));
+    char *record = malloc((size_t) (length - 3));
 //    record[0] = 'K';
     fread(record, sizeof(char), (size_t) (length - 4), fp);
+    record[length-4] = '\0';
 //    char **fields;
 //    fields = parseRecord(record);
     return record;
