@@ -64,11 +64,11 @@ int main(int argc, char *argv[])
     avail_S *avail = malloc(sizeof(avail_S));
 /* If student.db doesn't exist, create it, otherwise read * its first record */
 
-    if ( ( fp = fopen( "student.db", "r+b" ) ) == NULL)
+    if ( ( fp = fopen( argv[2], "r+b" ) ) == NULL)
     {
-        fp = fopen( "student.db", "w+b" );
+        fp = fopen( argv[2], "w+b" );
         fclose(fp);
-        fp = fopen( "student.db", "r+b" );
+        fp = fopen( argv[2], "r+b" );
         record_counter = 0;
         avail_counter = 0;
     }
@@ -105,8 +105,8 @@ int main(int argc, char *argv[])
                 }
                 else
                 {
-                    updateAvail(avail, 4 + phraseLength[2], hole_index, avail_counter, method);
                     offset = avail[hole_index].off;
+                    updateAvail(avail, 4 + phraseLength[2], hole_index, avail_counter, method);
                 }
                 char record[phraseLength[2] + 1];
                 strncpy(record, command[2], phraseLength[2]);
