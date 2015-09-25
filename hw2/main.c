@@ -30,6 +30,17 @@ void updateAvail(avail_S *avail, int record_length, int hole_index, int avail_co
 int main(int argc, char *argv[])
 {
     int method = 1;
+
+    if( argv[1])
+    {
+        ;
+    }
+    else
+    {
+        printf("Wrong argument, please use --first-fit or --best-fit or --worst-fit\n");
+        exit(1);
+    }
+
     if( strcmp( argv[1], "--first-fit") == 0 )
     {
         method = 1;
@@ -41,6 +52,11 @@ int main(int argc, char *argv[])
     else if( strcmp( argv[1], "--worst-fit") == 0 )
     {
         method = 3;
+    }
+    else
+    {
+        printf("Wrong argument, please use --first-fit or --best-fit or --worst-fit\n");
+        exit(1);
     }
     FILE *fp; /* Input/output stream */
     int record_counter, avail_counter = 0;
