@@ -77,13 +77,13 @@ void basicMerge(FILE *inp)
     int tmp;
     int min;
     int min_index = 0;
-    int w = 0;
+//    int w = 0;
     int out_index = 0;
     int empty_file = 0;
-    while(w < len)
+    while(empty_file < num_of_runs)
     {
         min = INT_MAX;
-        min_index = 0;
+        min_index = -1;
         for( i = 0; i < num_of_runs; i++)
         {
             tmp = readLeftMost(ptr[i], num_to_buffer);
@@ -97,34 +97,43 @@ void basicMerge(FILE *inp)
             }
             else
             {
-                if(!feof(files[i]))
+                if(files[i] != NULL && !feof(files[i]))
                 {
                     fread(ptr[i], sizeof(int), (size_t) num_to_buffer, files[i]);
                     tmp = readLeftMost(ptr[i], num_to_buffer);
-//                    if(tmp == -1)
-//                    {
-//                        empty_file++;
-//                        files[i] = NULL;
-//                    }
-                    if (tmp != -1 && tmp < min) {
+                    if(tmp == -1)
+                    {
+                        empty_file++;
+                        files[i] = NULL;
+                    }
+                    else if ( tmp < min) {
                         min = tmp;
                         min_index = i;
                     }
                 }
+                else if(files[i] != NULL)
+                {
+                    empty_file++;
+                    files[i] = NULL;
+                }
 
             }
         }
-        setLeftMost(ptr[min_index], num_to_buffer); // When find the smallest int, put it into output buffer
-        output[out_index] = min;
-        out_index++;
-        if( out_index >= 1000) // When the output buffer is full, reset the out_index and append to output file
+        if( min_index != -1)
         {
-            out_index = 0;
-            fwrite(output, sizeof(int), 1000, outfile);
+            setLeftMost(ptr[min_index], num_to_buffer); // When find the smallest int, put it into output buffer
+            output[out_index] = min;
+            out_index++;
+            if( out_index >= 1000) // When the output buffer is full, reset the out_index and append to output file
+            {
+                out_index = 0;
+                fwrite(output, sizeof(int), 1000, outfile);
+            }
         }
-        w++;
+
+//        w++;
     }
-//    printf("%d empty\n", empty_file);
+    printf("%d empty\n", empty_file);
     if(out_index != 0)
     {
         fwrite(output, sizeof(int), (size_t) out_index, outfile);
