@@ -14,7 +14,7 @@ void setLeftMost(int *ptr, int buffer_size);
 void basicMerge(FILE *inp);
 void multiMerge(FILE *inp);
 int createRuns(FILE *inp);
-void merge(int start, int runs_to_merge, FILE *outfile);
+void merge(int start, int runs_to_merge, FILE *outfile, char inf[]);
 
 int main(int argc, char *argv[])
 {
@@ -32,7 +32,7 @@ void basicMerge(FILE *inp)
 {
     FILE *outfile = fopen( "sort.bin", "w");
     int num_of_runs = createRuns(inp);
-    merge(1, num_of_runs, outfile);
+    merge(1, num_of_runs, outfile, "input.bin.%03d");
     fclose(outfile);
 }
 
@@ -70,7 +70,7 @@ int createRuns(FILE *inp)
     return num_of_runs;
 }
 
-void merge(int start, int runs_to_merge, FILE *outfile)
+void merge(int start, int runs_to_merge, FILE *outfile, char inf[])
 {
     int *output = malloc(1000 * sizeof(int));
     int *input = malloc(1000 * sizeof(int));
@@ -78,9 +78,10 @@ void merge(int start, int runs_to_merge, FILE *outfile)
     char *filename = malloc(13 * sizeof(char));
     FILE *files[runs_to_merge];
     int i;
+//    char inf[] = "input.bin.%03d";
     for( i = 0; i < runs_to_merge; i++ )
     {
-        sprintf(filename, "input.bin.%03d", i + start);
+        sprintf(filename, inf, i + start);
         files[i] = fopen(filename, "r");
     }
     int *ptr[runs_to_merge];
@@ -167,14 +168,15 @@ void multiMerge(FILE *inp)
     {
         sprintf(filename, "input.bin.super.%03d", i + 1);
         FILE *super_run_file = fopen(filename, "w");
-        merge( 1 + i * 15, 15, super_run_file);
+        merge( 1 + i * 15, 15, super_run_file, "input.bin.%03d");
         fclose(super_run_file);
     }
     sprintf(filename, "input.bin.super.%03d", super_runs);
     FILE *super_run_file = fopen(filename, "w");
-    merge( 1 + (super_runs-1) * 15, num_of_runs - 15 * (super_runs - 1), super_run_file);
+    merge( 1 + (super_runs-1) * 15, num_of_runs - 15 * (super_runs - 1), super_run_file, "input.bin.%03d");
     fclose(super_run_file);
-
+    FILE *outfile = fopen("sort_multi.bin", "w");
+    merge(1, 17, outfile, "input.bin.super.%03d");
 
 
 
