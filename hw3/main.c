@@ -322,7 +322,8 @@ void replacementMerge(FILE *inp)
                 file_index++;
                 sprintf(filename, "input.bin.re.%03d", file_index);
                 current_file = fopen(filename, "w");
-                heap_sort(&heap[secondary_heap_p], 750-secondary_heap_p);
+//                heap_sort(&heap[secondary_heap_p], 750-secondary_heap_p);
+                qsort(&heap[secondary_heap_p], (size_t) (750-secondary_heap_p), sizeof(int), cmpfunc);
                 fwrite(&heap[secondary_heap_p], sizeof(int), (size_t) (750-secondary_heap_p), current_file);
                 fclose(current_file);
                 break;
@@ -350,7 +351,7 @@ void sift(int *heap, int i, int n)
     {
         j = i * 2 + 1;
         k = j + 1;
-        if(k < n && heap[k] >= heap[j])
+        if(k < n && heap[k] < heap[j])
         {
             lg = k;
         }
@@ -358,7 +359,7 @@ void sift(int *heap, int i, int n)
         {
             lg = j;
         }
-        if(heap[i] >= heap[lg])
+        if(heap[i] < heap[lg])
         {
             return ;
         }
@@ -376,14 +377,14 @@ void heapify(int *heap, int n)
     {
         sift(heap, i, n);
     }
-    while(n-1 > 0)
-    {
-        int tmp = heap[n-1];
-        heap[n-1] = heap[0];
-        heap[0] = tmp;
-        sift(heap, 0, n-1);
-        n--;
-    }
+//    while(n-1 > 0)
+//    {
+//        int tmp = heap[n-1];
+//        heap[n-1] = heap[0];
+//        heap[0] = tmp;
+//        sift(heap, 0, n-1);
+//        n--;
+//    }
 }
 
 void heap_sort(int *heap, int n)
