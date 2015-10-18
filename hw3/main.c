@@ -33,88 +33,6 @@ void basicMerge(FILE *inp)
     FILE *outfile = fopen( "sort.bin", "w");
     int num_of_runs = createRuns(inp);
     merge(1, num_of_runs, outfile);
-
-//    int *output = malloc(1000 * sizeof(int));
-//    int *input = malloc(1000 * sizeof(int));
-//    int num_to_buffer = 1000 / num_of_runs; // number of int to buffer for each run.
-//    char *filename = malloc(13 * sizeof(char));
-//    FILE *files[num_of_runs];
-//    int i;
-//    for( i = 1; i <= num_of_runs; i++ )
-//    {
-//        sprintf(filename, "input.bin.%03d", i);
-//        files[i-1] = fopen(filename, "r");
-//    }
-//
-//    int *ptr[num_of_runs];
-//    for( i = 0; i < num_of_runs; i++ )
-//    {
-//        fread(input + i * num_to_buffer, sizeof(int), (size_t) num_to_buffer, files[i]);
-//        ptr[i] = input + i * num_to_buffer;
-//    }
-//    int tmp;
-//    int min;
-//    int min_index = 0;
-//    int out_index = 0;
-//    int empty_file = 0;
-//    while(empty_file < num_of_runs)
-//    {
-//        min = INT_MAX;
-//        min_index = -1;
-//        for( i = 0; i < num_of_runs; i++)
-//        {
-//            tmp = readLeftMost(ptr[i], num_to_buffer);
-//            if( tmp != -1)
-//            {
-//                if( tmp < min)
-//                {
-//                    min = tmp;
-//                    min_index = i;
-//                }
-//            }
-//            else
-//            {
-//                if(files[i] != NULL && !feof(files[i]))
-//                {
-//                    fread(ptr[i], sizeof(int), (size_t) num_to_buffer, files[i]);
-//                    tmp = readLeftMost(ptr[i], num_to_buffer);
-//                    if(tmp == -1)
-//                    {
-//                        empty_file++;
-//                        files[i] = NULL;
-//                    }
-//                    else if ( tmp < min) {
-//                        min = tmp;
-//                        min_index = i;
-//                    }
-//                }
-//                else if(files[i] != NULL)
-//                {
-//                    empty_file++;
-//                    files[i] = NULL;
-//                }
-//
-//            }
-//        }
-//        if( min_index != -1)
-//        {
-//            setLeftMost(ptr[min_index], num_to_buffer); // When find the smallest int, put it into output buffer
-//            output[out_index] = min;
-//            out_index++;
-//            if( out_index >= 1000) // When the output buffer is full, reset the out_index and append to output file
-//            {
-//                out_index = 0;
-//                fwrite(output, sizeof(int), 1000, outfile);
-//            }
-//        }
-//
-////        w++;
-//    }
-//    printf("%d empty\n", empty_file);
-//    if(out_index != 0)
-//    {
-//        fwrite(output, sizeof(int), (size_t) out_index, outfile);
-//    }
     fclose(outfile);
 }
 
@@ -238,91 +156,27 @@ void merge(int start, int runs_to_merge, FILE *outfile)
 void multiMerge(FILE *inp)
 {
     int num_of_runs = createRuns(inp);
-    FILE *outfile = fopen( "sort_multi.bin", "w");
-    merge(1, 15, outfile);
-//    int num_of_runs = createRuns(inp);
-//    int *output = malloc(1000 * sizeof(int));
-//    int *input = malloc(1000 * sizeof(int));
-//    int num_to_buffer = 1000 / num_of_runs; // number of int to buffer for each run.
-//    char *filename = malloc(13 * sizeof(char));
-//    FILE *files[num_of_runs];
-//    int i;
-//    for( i = 1; i <= num_of_runs; i++ )
-//    {
-//        sprintf(filename, "input.bin.%03d", i);
-//        files[i-1] = fopen(filename, "r");
-//    }
-//
-//    int *ptr[num_of_runs];
-//    for( i = 0; i < num_of_runs; i++ )
-//    {
-//        fread(input + i * num_to_buffer, sizeof(int), (size_t) num_to_buffer, files[i]);
-//        ptr[i] = input + i * num_to_buffer;
-//    }
-//    int tmp;
-//    int min;
-//    int min_index = 0;
-//    int out_index = 0;
-//    int empty_file = 0;
-//    while(empty_file < 15)
-//    {
-//        min = INT_MAX;
-//        min_index = -1;
-//        for( i = 0; i < 15; i++)
-//        {
-//            tmp = readLeftMost(ptr[i], num_to_buffer);
-//            if( tmp != -1)
-//            {
-//                if( tmp < min)
-//                {
-//                    min = tmp;
-//                    min_index = i;
-//                }
-//            }
-//            else
-//            {
-//                if(files[i] != NULL && !feof(files[i]))
-//                {
-//                    fread(ptr[i], sizeof(int), (size_t) num_to_buffer, files[i]);
-//                    tmp = readLeftMost(ptr[i], num_to_buffer);
-//                    if(tmp == -1)
-//                    {
-//                        empty_file++;
-//                        files[i] = NULL;
-//                    }
-//                    else if ( tmp < min) {
-//                        min = tmp;
-//                        min_index = i;
-//                    }
-//                }
-//                else if(files[i] != NULL)
-//                {
-//                    empty_file++;
-//                    files[i] = NULL;
-//                }
-//
-//            }
-//        }
-//        if( min_index != -1)
-//        {
-//            setLeftMost(ptr[min_index], num_to_buffer); // When find the smallest int, put it into output buffer
-//            output[out_index] = min;
-//            out_index++;
-//            if( out_index >= 1000) // When the output buffer is full, reset the out_index and append to output file
-//            {
-//                out_index = 0;
-//                fwrite(output, sizeof(int), 1000, outfile);
-//            }
-//        }
-//
-////        w++;
-//    }
-//    printf("%d empty\n", empty_file);
-//    if(out_index != 0)
-//    {
-//        fwrite(output, sizeof(int), (size_t) out_index, outfile);
-//    }
-    fclose(outfile);
+    int super_runs = num_of_runs / 15;
+    if( super_runs * 15 < num_of_runs)
+    {
+        super_runs++;
+    }
+    char *filename = malloc(19 * sizeof(char));
+    int i;
+    for( i = 0; i < super_runs - 1; i++ )
+    {
+        sprintf(filename, "input.bin.super.%03d", i + 1);
+        FILE *super_run_file = fopen(filename, "w");
+        merge( 1 + i * 15, 15, super_run_file);
+        fclose(super_run_file);
+    }
+    sprintf(filename, "input.bin.super.%03d", super_runs);
+    FILE *super_run_file = fopen(filename, "w");
+    merge( 1 + (super_runs-1) * 15, num_of_runs - 15 * (super_runs - 1), super_run_file);
+    fclose(super_run_file);
+
+
+
 
 }
 
