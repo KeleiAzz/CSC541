@@ -15,6 +15,11 @@ void basicMerge(FILE *inp);
 void multiMerge(FILE *inp);
 int createRuns(FILE *inp);
 void merge(int start, int runs_to_merge, FILE *outfile, char inf[]);
+void sift(int *heap, int i, int n);
+void heapify(int *heap, int n);
+void replacementMerge(FILE *inp);
+void heap_sort(int *heap, int n);
+
 
 int main(int argc, char *argv[])
 {
@@ -24,7 +29,17 @@ int main(int argc, char *argv[])
     basicMerge(inp);
     gettimeofday( &end_time, NULL );
     printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
+
+    gettimeofday( &start_time, NULL );
     multiMerge(inp);
+    gettimeofday( &end_time, NULL );
+    printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
+
+    gettimeofday( &start_time, NULL );
+    replacementMerge(inp);
+    gettimeofday( &end_time, NULL );
+    printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
+
     return 0;
 }
 
@@ -60,7 +75,7 @@ int createRuns(FILE *inp)
         fclose(fp);
     }
     fread(input, sizeof(int), (size_t) (len-1000*(num_of_runs - 1)), inp); // The last run may have less than 1000 int
-    printf("%d\n", (len-1000*(num_of_runs - 1)));
+//    printf("%d\n", (len-1000*(num_of_runs - 1)));
     qsort(input, (size_t) (len-1000*(num_of_runs - 1)), sizeof(int), cmpfunc);
     sprintf(filename, "input.bin.%03d", num_of_runs);
     fp = fopen(filename, "w");
@@ -78,7 +93,6 @@ void merge(int start, int runs_to_merge, FILE *outfile, char inf[])
     char *filename = malloc(13 * sizeof(char));
     FILE *files[runs_to_merge];
     int i;
-//    char inf[] = "input.bin.%03d";
     for( i = 0; i < runs_to_merge; i++ )
     {
         sprintf(filename, inf, i + start);
@@ -146,17 +160,21 @@ void merge(int start, int runs_to_merge, FILE *outfile, char inf[])
             }
         }
     }
-    printf("%d empty\n", empty_file);
+
     if(out_index != 0)
     {
         fwrite(output, sizeof(int), (size_t) out_index, outfile);
+        printf("happens\n");
     }
-//    fclose(outfile);
+    free(input);
+    free(output);
 }
 
 void multiMerge(FILE *inp)
 {
     int num_of_runs = createRuns(inp);
+
+    // Create super runs
     int super_runs = num_of_runs / 15;
     if( super_runs * 15 < num_of_runs)
     {
@@ -175,12 +193,216 @@ void multiMerge(FILE *inp)
     FILE *super_run_file = fopen(filename, "w");
     merge( 1 + (super_runs-1) * 15, num_of_runs - 15 * (super_runs - 1), super_run_file, "input.bin.%03d");
     fclose(super_run_file);
+
     FILE *outfile = fopen("sort_multi.bin", "w");
     merge(1, 17, outfile, "input.bin.super.%03d");
-
-
-
 }
+
+void replacementMerge(FILE *inp)
+{
+    int len = numOfInt(inp);
+    int num_output = 0;
+    int *heap = malloc(750 * sizeof(int));
+    int *buffer = malloc(250 * sizeof(int));
+    int *output = malloc(1000 * sizeof(int));
+    int out_index = 0;
+    int buffer_index = 0;
+    int num_in_heap = 750;
+    char *filename = malloc(16 * sizeof(char));
+    int file_index = 1;
+    sprintf(filename, "input.bin.re.%03d", file_index);
+    FILE *current_file = fopen(filename, "w");
+
+
+    fread(heap, sizeof(int), 750, inp);
+    fread(buffer, sizeof(int), 250, inp);
+
+    int buffered = 0;
+
+    int tmp = INT_MAX, i;
+    for ( i = 0; i < 750; ++i) {
+        if(tmp > heap[i])
+        {
+            tmp = heap[i];
+        }
+    }
+    heapify(heap, 750);
+    printf("%d %d %d\n", heap[0], heap[1], tmp);
+    int buffer_availabe = 1;
+    int secondary_heap_p = 750;
+    while(1 <= len)
+    {
+        if(buffer_availabe && buffer_index == 250 && buffered == len - 1000)
+        {
+            buffer_availabe = 0;
+            secondary_heap_p = 750 - num_in_heap;
+        }
+        if(buffer_availabe)
+        {
+            if(num_in_heap > 0)
+            {
+                output[out_index] = heap[0];
+                out_index++;
+                if(out_index == 1000)
+                {
+                    fwrite(output, sizeof(int), 1000, current_file);
+                    num_output += 1000;
+                    out_index = 0;
+                }
+                if(heap[0] <= buffer[buffer_index])
+                {
+                    heap[0] = buffer[buffer_index];
+                    buffer_index++;
+                    if(buffer_index == 250 && buffered < len - 1000)
+                    {
+                        fread(buffer, sizeof(int), 250, inp);
+                        buffer_index = 0;
+                        buffered += 250;
+                    }
+                    heapify(heap, num_in_heap);
+                }
+                else
+                {
+                    heap[0] = heap[num_in_heap-1];
+                    heap[num_in_heap-1] = buffer[buffer_index];
+                    buffer_index++;
+                    if(buffer_index == 250 && buffered < len - 1000)
+                    {
+                        fread(buffer, sizeof(int), 250, inp);
+                        buffer_index = 0;
+                        buffered += 250;
+                    }
+                    num_in_heap--;
+                    heapify(heap, num_in_heap);
+                }
+
+            }
+            else
+            {
+                // Current run ends
+                if(out_index > 0)
+                {
+                    fwrite(output, sizeof(int), (size_t) out_index, current_file);
+                    num_output += out_index;
+                    out_index = 0;
+                }
+                fclose(current_file);
+                file_index++;
+                sprintf(filename, "input.bin.re.%03d", file_index);
+                current_file = fopen(filename, "w");
+                num_in_heap = 750;
+                heapify(heap, num_in_heap);
+            }
+        }
+        else
+        {
+//            if(num_in_heap > 0)
+//            {
+//                output[out_index] = heap[0];
+//                out_index++;
+//                if(out_index == 1000)
+//                {
+//                    fwrite(output, sizeof(int), 1000, current_file);
+//                    num_output += 1000;
+//                    out_index = 0;
+//                }
+//                heap[0] = heap[num_in_heap-1];
+//                num_in_heap--;
+//                heapify(heap, num_in_heap);
+//            }
+//            else
+//            {
+                if(out_index > 0)
+                {
+                    fwrite(output, sizeof(int), (size_t) out_index, current_file);
+                    num_output += out_index;
+                    out_index = 0;
+                }
+                fclose(current_file);
+                file_index++;
+                sprintf(filename, "input.bin.re.%03d", file_index);
+                current_file = fopen(filename, "w");
+                heapify(heap, 750);
+                fwrite(heap, sizeof(int), (size_t) 750, current_file);
+                fclose(current_file);
+                break;
+//            }
+        }
+
+    }
+    if(out_index > 0)
+    {
+        fwrite(output, sizeof(int), (size_t) out_index, current_file);
+        fclose(current_file);
+        printf("opps\n");
+    }
+    FILE *outfile = fopen("sort_re.bin", "w");
+    merge(1, file_index, outfile, "input.bin.re.%03d");
+    printf("%d buffered\n", buffered);
+}
+
+
+
+void sift(int *heap, int i, int n)
+{
+    int j, k, lg, tmp;
+    while(i * 2 + 1 < n)
+    {
+        j = i * 2 + 1;
+        k = j + 1;
+        if(k < n && heap[k] >= heap[j])
+        {
+            lg = k;
+        }
+        else
+        {
+            lg = j;
+        }
+        if(heap[i] >= heap[lg])
+        {
+            return ;
+        }
+        tmp = heap[i];
+        heap[i] = heap[lg];
+        heap[lg] = tmp;
+        i = lg;
+    }
+}
+
+void heapify(int *heap, int n)
+{
+    int i = n / 2;
+    for(i; i >= 0; i--)
+    {
+        sift(heap, i, n);
+    }
+    while(n-1 > 0)
+    {
+        int tmp = heap[n-1];
+        heap[n-1] = heap[0];
+        heap[0] = tmp;
+        sift(heap, 0, n-1);
+        n--;
+    }
+}
+
+//void heap_sort(int *heap, int n)
+//{
+////    heapify(heap, n);
+//    int i = n/2, tmp;
+//    for( i = n/2; i >= 0; i--)
+//    {
+//        sift(heap, i, n);
+//    }
+//    while(n - 1 > 0)
+//    {
+//        tmp = heap[n-1];
+//        heap[n-1] = heap[0];
+//        heap[0] = tmp;
+//        sift(heap, 0, n-1);
+//        n--;
+//    }
+//}
 
 int numOfInt(FILE *inp){
     fseek(inp, 0, SEEK_END);
