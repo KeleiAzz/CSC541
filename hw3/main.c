@@ -235,7 +235,7 @@ void replacementMerge(FILE *inp)
         if(buffer_availabe && buffer_index == 250 && buffered == len - 1000)
         {
             buffer_availabe = 0;
-            secondary_heap_p = 750 - num_in_heap;
+            secondary_heap_p = num_in_heap;
         }
         if(buffer_availabe)
         {
@@ -296,22 +296,22 @@ void replacementMerge(FILE *inp)
         }
         else
         {
-//            if(num_in_heap > 0)
-//            {
-//                output[out_index] = heap[0];
-//                out_index++;
-//                if(out_index == 1000)
-//                {
-//                    fwrite(output, sizeof(int), 1000, current_file);
-//                    num_output += 1000;
-//                    out_index = 0;
-//                }
-//                heap[0] = heap[num_in_heap-1];
-//                num_in_heap--;
-//                heapify(heap, num_in_heap);
-//            }
-//            else
-//            {
+            if(num_in_heap > 0)
+            {
+                output[out_index] = heap[0];
+                out_index++;
+                if(out_index == 1000)
+                {
+                    fwrite(output, sizeof(int), 1000, current_file);
+                    num_output += 1000;
+                    out_index = 0;
+                }
+                heap[0] = heap[num_in_heap-1];
+                num_in_heap--;
+                heapify(heap, num_in_heap);
+            }
+            else
+            {
                 if(out_index > 0)
                 {
                     fwrite(output, sizeof(int), (size_t) out_index, current_file);
@@ -322,11 +322,11 @@ void replacementMerge(FILE *inp)
                 file_index++;
                 sprintf(filename, "input.bin.re.%03d", file_index);
                 current_file = fopen(filename, "w");
-                heapify(heap, 750);
-                fwrite(heap, sizeof(int), (size_t) 750, current_file);
+                heap_sort(&heap[secondary_heap_p], 750-secondary_heap_p);
+                fwrite(&heap[secondary_heap_p], sizeof(int), (size_t) (750-secondary_heap_p), current_file);
                 fclose(current_file);
                 break;
-//            }
+            }
         }
 
     }
@@ -386,23 +386,22 @@ void heapify(int *heap, int n)
     }
 }
 
-//void heap_sort(int *heap, int n)
-//{
-////    heapify(heap, n);
-//    int i = n/2, tmp;
-//    for( i = n/2; i >= 0; i--)
-//    {
-//        sift(heap, i, n);
-//    }
-//    while(n - 1 > 0)
-//    {
-//        tmp = heap[n-1];
-//        heap[n-1] = heap[0];
-//        heap[0] = tmp;
-//        sift(heap, 0, n-1);
-//        n--;
-//    }
-//}
+void heap_sort(int *heap, int n)
+{
+    int i = n / 2;
+    for(i; i >= 0; i--)
+    {
+        sift(heap, i, n);
+    }
+    while(n-1 > 0)
+    {
+        int tmp = heap[n-1];
+        heap[n-1] = heap[0];
+        heap[0] = tmp;
+        sift(heap, 0, n-1);
+        n--;
+    }
+}
 
 int numOfInt(FILE *inp){
     fseek(inp, 0, SEEK_END);
