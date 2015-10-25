@@ -62,16 +62,6 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-
-
-
-//    gettimeofday( &start_time, NULL );
-//    inp = fopen("input.bin", "r");
-//    replacementMerge(inp);
-//    fclose(inp);
-//    gettimeofday( &end_time, NULL );
-//    printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
-
     return 0;
 }
 
@@ -259,7 +249,7 @@ void replacementMerge(FILE *inp, char *output_file)
     int final_remain = 0;
     while(1)
     {
-        if(buffer_availabe && buffer_index == 250 && buffered == len - 1000)
+        if(buffer_availabe && buffer_index == final_remain && buffered == len - 1000)
         {
             buffer_availabe = 0;
             secondary_heap_p = num_in_heap;
