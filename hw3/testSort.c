@@ -9,9 +9,14 @@
 #include <limits.h>
 int numOfInt(FILE *inp);
 
+int cmpfunc(const void * a, const void * b)
+{
+    return ( *(int*)a - *(int*)b );
+}
+
 int main()
 {
-    FILE *outfile = fopen( "sort_re.bin", "r");
+    FILE *outfile = fopen( "sortt.bin", "r");
     FILE *example = fopen("sort_example.bin", "r");
     int len = numOfInt(outfile);
     printf("%d\n", len);
@@ -19,7 +24,9 @@ int main()
     int *sorted = malloc(len * sizeof(int));
 
     fread(allall, sizeof(int), (size_t) len, outfile);
-    fread(sorted, sizeof(int), (size_t) len, example);
+    rewind(outfile);
+    fread(sorted, sizeof(int), (size_t) len, outfile);
+    qsort(sorted, len, sizeof(int), cmpfunc);
     char *filename = malloc(16 * sizeof(char));
     int i, j, num = 0;
     for(i = 0; i < len-1; i++)
