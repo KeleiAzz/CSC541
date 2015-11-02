@@ -354,8 +354,8 @@ void replacementMerge(FILE *inp, char *output_file)
                 file_index++;
                 sprintf(filename, "input.bin.%03d", file_index);
                 current_file = fopen(filename, "w");
-                heap_sort(&heap[secondary_heap_p], 750-secondary_heap_p);
-//                qsort(&heap[secondary_heap_p], (size_t) (750-secondary_heap_p), sizeof(int), cmpfunc);
+//                heap_sort(&heap[secondary_heap_p], 750-secondary_heap_p);
+                qsort(&heap[secondary_heap_p], (size_t) (750-secondary_heap_p), sizeof(int), cmpfunc);
 //                heap_sort(&heap[secondary_heap_p], 750-secondary_heap_p);
                 fwrite(&heap[secondary_heap_p], sizeof(int), (size_t) (750-secondary_heap_p), current_file);
                 fclose(current_file);
