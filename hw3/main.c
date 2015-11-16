@@ -69,7 +69,7 @@ void basicMerge(FILE *inp, char *output)
 {
     FILE *outfile = fopen( output, "w");
     int num_of_runs = createRuns(inp);
-    merge(1, num_of_runs, outfile, "input.bin.%03d");
+    merge(0, num_of_runs, outfile, "input.bin.%03d");
     fclose(outfile);
 }
 
@@ -92,7 +92,9 @@ int createRuns(FILE *inp)
         fread(input, sizeof(int), 1000, inp);
         qsort(input, 1000, sizeof(int), cmpfunc);
 //        heap_sort(input, 1000);
-        sprintf(filename, "input.bin.%03d", i);
+//        char *index = malloc(4 * sizeof(char));
+        sprintf(filename, "input.bin.%03d", i - 1);
+
         fp = fopen(filename, "w");
         fwrite(input, sizeof(int), 1000, fp);
         fclose(fp);
@@ -101,7 +103,7 @@ int createRuns(FILE *inp)
 //    printf("%d\n", (len-1000*(num_of_runs - 1)));
     qsort(input, (size_t) (len-1000*(num_of_runs - 1)), sizeof(int), cmpfunc);
 //    heap_sort(input, )
-    sprintf(filename, "input.bin.%03d", num_of_runs);
+    sprintf(filename, "input.bin.%03d", num_of_runs - 1);
     fp = fopen(filename, "w");
     fwrite(input, sizeof(int), (size_t) (len-1000*(num_of_runs - 1)), fp);
     fclose(fp);
@@ -209,18 +211,18 @@ void multiMerge(FILE *inp, char *output_file)
     int i;
     for( i = 0; i < super_runs - 1; i++ )
     {
-        sprintf(filename, "input.bin.super.%03d", i + 1);
+        sprintf(filename, "input.bin.super.%03d", i);
         FILE *super_run_file = fopen(filename, "w");
-        merge( 1 + i * 15, 15, super_run_file, "input.bin.%03d");
+        merge( 0 + i * 15, 15, super_run_file, "input.bin.%03d");
         fclose(super_run_file);
     }
-    sprintf(filename, "input.bin.super.%03d", super_runs);
+    sprintf(filename, "input.bin.super.%03d", super_runs - 1);
     FILE *super_run_file = fopen(filename, "w");
-    merge( 1 + (super_runs-1) * 15, num_of_runs - 15 * (super_runs - 1), super_run_file, "input.bin.%03d");
+    merge( 0 + (super_runs-1) * 15, num_of_runs - 15 * (super_runs - 1), super_run_file, "input.bin.%03d");
     fclose(super_run_file);
 
     FILE *outfile = fopen(output_file, "w");
-    merge(1, super_runs, outfile, "input.bin.super.%03d");
+    merge(0, super_runs, outfile, "input.bin.super.%03d");
 }
 
 void replacementMerge(FILE *inp, char *output_file)
@@ -235,7 +237,7 @@ void replacementMerge(FILE *inp, char *output_file)
     int num_in_heap = 750;
     char *filename = malloc(13 * sizeof(char));
     int file_index = 1;
-    sprintf(filename, "input.bin.%03d", file_index);
+    sprintf(filename, "input.bin.%03d", file_index - 1);
     FILE *current_file = fopen(filename, "w");
 
     fread(heap, sizeof(int), 750, inp);
@@ -319,7 +321,7 @@ void replacementMerge(FILE *inp, char *output_file)
                 }
                 fclose(current_file);
                 file_index++;
-                sprintf(filename, "input.bin.%03d", file_index);
+                sprintf(filename, "input.bin.%03d", file_index - 1);
                 current_file = fopen(filename, "w");
                 num_in_heap = 750;
                 heapify(heap, num_in_heap);
@@ -352,7 +354,7 @@ void replacementMerge(FILE *inp, char *output_file)
                 }
                 fclose(current_file);
                 file_index++;
-                sprintf(filename, "input.bin.%03d", file_index);
+                sprintf(filename, "input.bin.%03d", file_index - 1);
                 current_file = fopen(filename, "w");
 //                heap_sort(&heap[secondary_heap_p], 750-secondary_heap_p);
                 qsort(&heap[secondary_heap_p], (size_t) (750-secondary_heap_p), sizeof(int), cmpfunc);
@@ -371,7 +373,7 @@ void replacementMerge(FILE *inp, char *output_file)
 //        printf("opps\n");
     }
     FILE *outfile = fopen(output_file, "w");
-    merge(1, file_index, outfile, "input.bin.%03d");
+    merge(0, file_index, outfile, "input.bin.%03d");
 //    printf("%d buffered\n", buffered);
 }
 
