@@ -17,7 +17,7 @@ int createRuns(char *inp);
 void merge(int start, int runs_to_merge, FILE *outfile, char inf[]);
 void sift(int *heap, int i, int n);
 void heapify(int *heap, int n);
-void replacementMerge(FILE *inp, char *output_file);
+void replacementMerge(char *inp, char *output_file);
 void heap_sort(int *heap, int n);
 
 
@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
     {
         gettimeofday( &start_time, NULL );
         inp = fopen(argv[2], "r");
-        replacementMerge(inp, argv[3]);
+        replacementMerge(argv[2], argv[3]);
         fclose(inp);
         gettimeofday( &end_time, NULL );
         printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
@@ -264,8 +264,9 @@ void multiMerge(char *inpfile, char *output_file)
     free(name_pattern_super);
 }
 
-void replacementMerge(FILE *inp, char *output_file)
+void replacementMerge(char *inpfile, char *output_file)
 {
+    FILE *inp = fopen(inpfile, "r");
     int len = numOfInt(inp);
     int num_output = 0;
     int *heap = malloc(750 * sizeof(int));
@@ -274,9 +275,14 @@ void replacementMerge(FILE *inp, char *output_file)
     int out_index = 0;
     int buffer_index = 0;
     int num_in_heap = 750;
-    char *filename = malloc(13 * sizeof(char));
+    char *filename = malloc((strlen(inpfile) + 4) * sizeof(char));
     int file_index = 1;
-    sprintf(filename, "input.bin.%03d", file_index - 1);
+    char *index = malloc(4 * sizeof(char));
+    sprintf(index, ".%03d", file_index - 1);
+    strcpy(filename, inpfile);
+    strcat(filename, index);
+//    sprintf(filename, "input.bin.%03d", file_index - 1);
+
     FILE *current_file = fopen(filename, "w");
 
     fread(heap, sizeof(int), 750, inp);
@@ -360,7 +366,10 @@ void replacementMerge(FILE *inp, char *output_file)
                 }
                 fclose(current_file);
                 file_index++;
-                sprintf(filename, "input.bin.%03d", file_index - 1);
+                sprintf(index, ".%03d", file_index - 1);
+                strcpy(filename, inpfile);
+                strcat(filename, index);
+//                sprintf(filename, "input.bin.%03d", file_index - 1);
                 current_file = fopen(filename, "w");
                 num_in_heap = 750;
                 heapify(heap, num_in_heap);
@@ -393,7 +402,10 @@ void replacementMerge(FILE *inp, char *output_file)
                 }
                 fclose(current_file);
                 file_index++;
-                sprintf(filename, "input.bin.%03d", file_index - 1);
+                sprintf(index, ".%03d", file_index - 1);
+                strcpy(filename, inpfile);
+                strcat(filename, index);
+//                sprintf(filename, "input.bin.%03d", file_index - 1);
                 current_file = fopen(filename, "w");
 //                heap_sort(&heap[secondary_heap_p], 750-secondary_heap_p);
                 qsort(&heap[secondary_heap_p], (size_t) (750-secondary_heap_p), sizeof(int), cmpfunc);
@@ -412,7 +424,10 @@ void replacementMerge(FILE *inp, char *output_file)
 //        printf("opps\n");
     }
     FILE *outfile = fopen(output_file, "w");
-    merge(0, file_index, outfile, "input.bin.%03d");
+    char *name_pattern = malloc((strlen(inpfile) + 4) * sizeof(char));
+    strcpy(name_pattern, inpfile);
+    strcat(name_pattern, ".%03d");
+    merge(0, file_index, outfile, name_pattern);
 //    printf("%d buffered\n", buffered);
 }
 
