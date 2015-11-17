@@ -25,12 +25,22 @@ int main(int argc, char *argv[])
 {
     struct timeval start_time, end_time;
     FILE *inp;
-//    printf("%d\n", (int) strlen(argv[2]));
+    char *s = strrchr(argv[2], '/');
+    char *filename;
+    if (!s) {
+        filename = strdup(argv[2]);
+//        printf("%s\n", filename);
+    }
+    else {
+        filename = strdup(s + 1);
+//        printf("%s\n", filename);
+//        return 0;
+    }
     if( strcmp( argv[1], "--basic") == 0 )
     {
         gettimeofday( &start_time, NULL );
 //        inp = fopen(argv[2], "r");
-        basicMerge(argv[2], argv[3]);
+        basicMerge(filename, argv[3]);
 //        fclose(inp);
         gettimeofday( &end_time, NULL );
         printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
@@ -39,7 +49,7 @@ int main(int argc, char *argv[])
     {
         gettimeofday( &start_time, NULL );
 //        inp = fopen(argv[2], "r");
-        multiMerge(argv[2], argv[3]);
+        multiMerge(filename, argv[3]);
 //        fclose(inp);
         gettimeofday( &end_time, NULL );
         printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
@@ -48,7 +58,7 @@ int main(int argc, char *argv[])
     {
         gettimeofday( &start_time, NULL );
 //        inp = fopen(argv[2], "r");
-        replacementMerge(argv[2], argv[3]);
+        replacementMerge(filename, argv[3]);
 //        fclose(inp);
         gettimeofday( &end_time, NULL );
         printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
