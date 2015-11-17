@@ -34,7 +34,6 @@ int main(int argc, char *argv[])
 //        fclose(inp);
         gettimeofday( &end_time, NULL );
         printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
-
     }
     else if( strcmp( argv[1], "--multistep") == 0 )
     {
@@ -44,14 +43,13 @@ int main(int argc, char *argv[])
 //        fclose(inp);
         gettimeofday( &end_time, NULL );
         printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
-
     }
     else if( strcmp( argv[1], "--replacement") == 0 )
     {
         gettimeofday( &start_time, NULL );
-        inp = fopen(argv[2], "r");
+//        inp = fopen(argv[2], "r");
         replacementMerge(argv[2], argv[3]);
-        fclose(inp);
+//        fclose(inp);
         gettimeofday( &end_time, NULL );
         printf("Time: %lf\n", (end_time.tv_sec - start_time.tv_sec)+(end_time.tv_usec-start_time.tv_usec)/1000000.0);
 
@@ -73,7 +71,6 @@ void basicMerge(char *inpfile, char *output)
     char *name_pattern = malloc((strlen(inpfile) + 4) * sizeof(char));
     strcpy(name_pattern, inpfile);
     strcat(name_pattern, ".%03d");
-
     merge(0, num_of_runs, outfile, name_pattern);
     fclose(outfile);
 }
@@ -82,7 +79,21 @@ int createRuns(char *inpfile)
 {
     FILE *inp = fopen( inpfile, "r");
     int len = numOfInt(inp); // calculate number of int to sort
-
+    if(len < 1000)
+    {
+        int *input = malloc(len * sizeof(int));
+        fread(input, sizeof(int), len, inp);
+        qsort(input, len, sizeof(int), cmpfunc);
+        char *filename = malloc((strlen(inpfile) + 4) * sizeof(char));
+        strcpy(filename, inpfile);
+        strcat(filename, ".000");
+        FILE *fp = fopen(filename, "w");
+        fwrite(input, sizeof(int), len, fp);
+        fclose(fp);
+        free(filename);
+        free(input);
+        return 1;
+    }
     int *input = malloc(1000 * sizeof(int));
     //----- Create runs -----
     int num_of_runs = len / 1000;
@@ -128,6 +139,19 @@ int createRuns(char *inpfile)
 
 void merge(int start, int runs_to_merge, FILE *outfile, char inf[])
 {
+    if(runs_to_merge == 1)
+    {
+        char *filename = malloc(13 * sizeof(char));
+        sprintf(filename, inf, 0);
+        FILE *file = fopen(filename, "r");
+//        fread(input + i * num_to_buffer, sizeof(int), (size_t) num_to_buffer, files[i]);
+        int len = numOfInt(file);
+        int *input = malloc(len * sizeof(int));
+        fread(input, sizeof(int), len, file);
+//        FILE *output = fopen(outfile, "w");
+        fwrite(input, sizeof(int), len, outfile);
+        return ;
+    }
     int *output = malloc(1000 * sizeof(int));
     int *input = malloc(1000 * sizeof(int));
     int num_to_buffer = 1000 / runs_to_merge;
@@ -150,6 +174,7 @@ void merge(int start, int runs_to_merge, FILE *outfile, char inf[])
     int min_index = 0;
     int out_index = 0;
     int empty_file = 0;
+
     while(empty_file < runs_to_merge)
     {
         min = INT_MAX;
@@ -268,6 +293,28 @@ void replacementMerge(char *inpfile, char *output_file)
 {
     FILE *inp = fopen(inpfile, "r");
     int len = numOfInt(inp);
+    if(len < 1000)
+    {
+        int *input = malloc(len * sizeof(int));
+        fread(input, sizeof(int), len, inp);
+        qsort(input, len, sizeof(int), cmpfunc);
+        char *filename = malloc((strlen(inpfile) + 4) * sizeof(char));
+        strcpy(filename, inpfile);
+        strcat(filename, ".000");
+        FILE *fp = fopen(filename, "w");
+        fwrite(input, sizeof(int), len, fp);
+        fclose(fp);
+        free(filename);
+        free(input);
+        FILE *outfile = fopen(output_file, "w");
+        char *name_pattern = malloc((strlen(inpfile) + 4) * sizeof(char));
+        strcpy(name_pattern, inpfile);
+        strcat(name_pattern, ".%03d");
+        merge(0, 1, outfile, name_pattern);
+        return ;
+    }
+
+
     int num_output = 0;
     int *heap = malloc(750 * sizeof(int));
     int *buffer = malloc(250 * sizeof(int));
